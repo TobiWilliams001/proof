@@ -4,10 +4,11 @@ import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import { RBars } from '@/components/Charts';
-import { EntryItem } from '@/components/Items';
+import { EntryItem, TradeItem } from '@/components/Items';
 import { Reveal } from '@/components/motion';
 import { addDays, startOfWeek, ymd } from '@/lib/dates';
 import { fmt } from '@/lib/format';
+import { buildCoachNote, type CoachLine } from '@/lib/coach';
 import { buildWeeklyReview } from '@/lib/review';
 import { useJournal } from '@/lib/store';
 import { useMounted } from '@/lib/useMounted';
@@ -17,10 +18,18 @@ import s from './review.module.css';
 export default function ReviewPage() {
   const { data, ready, setImprovement } = useJournal();
   const [offset, setOffset] = useState(0);
+  // "/review?week=-1" opens last week (linked from Journal at the start of a week).
+  useEffect(() => {
+    const w = Number(new URLSearchParams(window.location.search).get('week'));
+    // Reading the URL once after mount; static pages can't read it during prerender.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (Number.isInteger(w) && w < 0) setOffset(w);
+  }, []);
   const mounted = useMounted();
   const anchor = useMemo(() => addDays(startOfWeek(new Date()), offset * 7), [offset]);
   const r = useMemo(() => buildWeeklyReview(data.trades, data.entries, anchor), [data.trades, data.entries, anchor]);
   const tradesById = useMemo(() => new Map(data.trades.map((t) => [t.id, t])), [data.trades]);
+  const coach = useMemo(() => buildCoachNote(data.trades, data.entries, data.playbook, anchor), [data, anchor]);
 
   const saved = data.reviews.find((x) => x.weekStart === r.weekStart)?.improvement ?? '';
   const [improvement, setImp] = useState(saved);
@@ -47,17 +56,19 @@ export default function ReviewPage() {
           </button>
         </div>
         <h1 className="page-title">{mounted ? label : '\u00a0'}</h1>
-        {!empty && ready && (
-          <p className={`page-sub ${s.narrative}`}>
-            {r.stats.count} trade{r.stats.count === 1 ? '' : 's'},{' '}
-            <span className={r.stats.totalR >= 0 ? 'pos' : 'neg'}>{fmt.r(r.stats.totalR)}</span>
-            {hasTrades && <> at a {fmt.pct(r.stats.winRate)} win rate</>}.
-            {r.bestSetup && r.bestSetup.totalR > 0 && <> {r.bestSetup.name} carried the week.</>}
-            {r.ruleBreaks.length > 0 && <> {r.ruleBreaks.length} rule break{r.ruleBreaks.length === 1 ? '' : 's'}.</>}
-            {r.missed.length > 0 && <> {r.missed.length} missed trade{r.missed.length === 1 ? '' : 's'}.</>}
-          </p>
-        )}
       </header>
+
+      {!ready && (
+        <div className="stack" aria-hidden>
+          <div className="skeleton" style={{ height: 150 }} />
+          <div className="stats">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 76 }} />)}
+          </div>
+          <div className="skeleton" style={{ height: 190 }} />
+        </div>
+      )}
+
+      {ready && !empty && <CoachNote lines={coach} tradesById={tradesById} entries={data.entries} />}
 
       {empty && (
         <div className="empty card">
@@ -77,7 +88,7 @@ export default function ReviewPage() {
             </div>
             {hasTrades && (
               <div className="card" style={{ marginTop: 12 }}>
-                <div className={s.cardHead}>How your R landed</div>
+                <div className={s.cardHead}>How your trades landed in R, {offset === 0 ? 'this week' : offset === -1 ? 'last week' : range}</div>
                 <RBars bins={r.distribution} />
               </div>
             )}
@@ -94,7 +105,16 @@ export default function ReviewPage() {
 
           <Chapter n={r.bestSetup || r.worstSetup ? 3 : 2} title="Discipline">
             <div className="grid-2">
-              <Meter label="Followed your rules" value={r.adherence} display={r.adherence == null ? '—' : fmt.pct(r.adherence)} sub={`${r.ruleBreaks.length} rule break${r.ruleBreaks.length === 1 ? '' : 's'} logged`} />
+              <Meter
+                label="Followed your plan"
+                value={r.adherence}
+                display={r.adherence == null ? '—' : fmt.pct(r.adherence)}
+                sub={
+                  r.adherenceSource === 'answers'
+                    ? `from your answers on ${r.planAnswered} trade${r.planAnswered === 1 ? '' : 's'}`
+                    : `${r.ruleBreaks.length} rule break${r.ruleBreaks.length === 1 ? '' : 's'} logged`
+                }
+              />
               <Meter
                 label="Journaled"
                 value={r.stats.count ? r.journaled / r.stats.count : null}
@@ -135,7 +155,7 @@ export default function ReviewPage() {
       {ready && (
         <Reveal className={`section ${s.improve}`}>
           <div className={s.chapterNum}>Next week</div>
-          <h2 className="serif" style={{ fontSize: 26, marginTop: 4 }}>One thing to improve</h2>
+          <h2 className="display" style={{ fontSize: 21, marginTop: 4 }}>One thing to improve</h2>
           {lastWeek?.improvement && (
             <p className="muted" style={{ fontSize: 14, marginTop: 6 }}>
               Last week you said: <em>“{lastWeek.improvement}”</em>
@@ -254,5 +274,67 @@ function Fold({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * The review speaks first: a short note from the week's data. Each claim can be
+ * opened to show the trades and notes it rests on.
+ */
+function CoachNote({ lines, tradesById, entries }: { lines: CoachLine[]; tradesById: Map<string, Trade>; entries: Entry[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const suggestion = lines.find((l) => l.kind === 'suggestion');
+  const facts = lines.filter((l) => l.kind !== 'suggestion');
+  return (
+    <motion.section
+      className={s.coach}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+      aria-label="Your week, in plain words"
+    >
+      <div className={s.coachBody}>
+        {facts.map((l, i) => {
+          const n = l.tradeIds.length + l.entryIds.length;
+          return (
+            <p key={i} className={i === 0 ? s.coachLead : s.coachFact}>
+              {l.text}
+              {n > 0 && l.kind !== 'summary' && (
+                <>
+                  {' '}
+                  <button className={s.cite} aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>
+                    {l.entryIds.length ? `${l.entryIds.length} note${l.entryIds.length === 1 ? '' : 's'}` : `${l.tradeIds.length} trade${l.tradeIds.length === 1 ? '' : 's'}`}
+                  </button>
+                </>
+              )}
+            </p>
+          );
+        })}
+      </div>
+      {suggestion && <p className={s.suggestion}>{suggestion.text}</p>}
+      <AnimatePresence initial={false}>
+        {open != null && facts[open] && (
+          <motion.div
+            key={open}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="list" style={{ marginTop: 14 }}>
+              {facts[open].entryIds.length
+                ? entries
+                    .filter((e) => facts[open].entryIds.includes(e.id))
+                    .map((e) => <EntryItem key={e.id} entry={e} trade={e.tradeId ? tradesById.get(e.tradeId) : undefined} compact />)
+                : facts[open].tradeIds.slice(0, 12).map((id) => {
+                    const t = tradesById.get(id);
+                    return t ? <TradeItem key={id} trade={t} /> : null;
+                  })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
   );
 }

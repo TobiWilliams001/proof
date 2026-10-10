@@ -8,7 +8,6 @@
   text-align: left;
   border-radius: var(--r);
   background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
   transition: transform 0.15s var(--ease), background 0.2s;
 }
 .prompt:hover { background: color-mix(in srgb, var(--accent-soft) 100%, var(--accent) 6%); }
@@ -25,7 +24,7 @@
 @keyframes breathe { 50% { box-shadow: 0 0 0 7px transparent; } }
 .promptText { flex: 1; font-size: 14.5px; min-width: 0; }
 
-.onboard { padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); }
+.onboard { padding: 22px; background: var(--surface); border-radius: var(--r-xl); }
 .steps { display: grid; gap: 8px; margin-top: 18px; }
 .step {
   display: grid;
@@ -79,7 +78,6 @@
   padding: 12px 14px;
   border-radius: var(--r);
   background: var(--surface);
-  border: 1px solid var(--line);
   min-width: 0;
 }
 .glanceValue { font-size: 19px; font-weight: 500; letter-spacing: -0.02em; margin: 1px 0; }
@@ -92,4 +90,57 @@
   margin-bottom: 14px;
   border-radius: var(--r);
   background: var(--surface-2);
+}
+
+/* Open positions read as "plan" prompts, distinct from closed-trade prompts. */
+.prompt[data-open] { background: color-mix(in srgb, var(--k-plan) 12%, transparent); }
+.prompt[data-open] .promptDot { background: var(--k-plan); box-shadow: 0 0 0 4px color-mix(in srgb, var(--k-plan) 18%, transparent); }
+
+.planQuote {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--k-plan) 10%, transparent);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.planQuote span { font-size: var(--text-xs); font-weight: var(--weight-strong); color: var(--k-plan); }
+
+.weekReady {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 60%),
+    var(--surface);
+  box-shadow: var(--shadow-1);
+  transition: transform 0.15s var(--ease);
+}
+.weekReady:active { transform: scale(0.99); }
+.weekReadyLabel { font-size: var(--text-xs); font-weight: var(--weight-strong); color: var(--accent); }
+.weekReadyText { font-size: var(--text-lg); font-weight: var(--weight-medium); line-height: 1.45; letter-spacing: -0.01em; }
+.weekReadyCta { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: var(--weight-strong); color: var(--ink-2); }
+
+/* Phones: the composer lives in the thumb zone, above the tab bar. */
+@media (max-width: 899px) {
+  .page { padding-bottom: calc(var(--nav-h) + 150px + env(safe-area-inset-bottom)); }
+  .dock {
+    position: fixed;
+    z-index: 25;
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));
+    max-height: min(72dvh, 620px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 24px;
+  }
+}
+@media (min-width: 900px) {
+  .dock { margin-bottom: 8px; }
 }

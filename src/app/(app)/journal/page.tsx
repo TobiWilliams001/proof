@@ -8,13 +8,14 @@ import { Composer } from '@/components/Composer';
 import { EntryItem } from '@/components/Items';
 import { Sheet } from '@/components/Sheet';
 import { listItem, stagger } from '@/components/motion';
-import { startOfDay, startOfWeek, ymd } from '@/lib/dates';
+import { addDays, startOfDay, startOfWeek, ymd } from '@/lib/dates';
 import { fmt } from '@/lib/format';
+import { buildCoachNote } from '@/lib/coach';
 import { computeStats } from '@/lib/stats';
 import { useJournal } from '@/lib/store';
 import { useMounted } from '@/lib/useMounted';
 import { useNow } from '@/lib/useNow';
-import { KIND_LABEL, type EntryKind, type Trade } from '@/lib/types';
+import { closedOnly, isOpen, KIND_LABEL, type EntryKind, type Trade } from '@/lib/types';
 import s from './journal.module.css';
 
 const FILTERS: (EntryKind | 'all')[] = ['all', 'trade_note', 'missed', 'rule_break', 'plan', 'reflection'];
@@ -38,11 +39,27 @@ export default function JournalPage() {
 
   const tradesById = useMemo(() => new Map(data.trades.map((t) => [t.id, t])), [data.trades]);
 
-  // The key moment: recently closed trades that don't have a note yet.
+  // The key moments: a position just opened (capture the plan before the outcome)
+  // and a trade just closed (capture what happened). Opened ones come first.
   const awaiting = useMemo(() => {
-    const noted = new Set(data.entries.map((e) => e.tradeId));
+    const planned = new Set(data.entries.filter((e) => e.kind === 'plan').map((e) => e.tradeId));
+    const noted = new Set(data.entries.filter((e) => e.kind !== 'plan').map((e) => e.tradeId));
     const cutoff = new Date(now - 3 * 864e5).toISOString();
-    return data.trades.filter((t) => t.closedAt >= cutoff && !noted.has(t.id)).slice(0, 3);
+    const opened = data.trades.filter((t) => isOpen(t) && !planned.has(t.id));
+    const closed = closedOnly(data.trades).filter((t) => t.closedAt >= cutoff && !noted.has(t.id));
+    return [...opened, ...closed].slice(0, 3);
+  }, [data, now]);
+
+  // At the start of the week the review is already waiting — the AI speaks first.
+  const weekReady = useMemo(() => {
+    const d = new Date(now);
+    const dow = d.getDay(); // Sun 0, Mon 1
+    if (dow !== 0 && dow !== 1) return null;
+    const week = dow === 1 ? addDays(startOfWeek(d), -7) : d;
+    const lines = buildCoachNote(data.trades, data.entries, data.playbook, week);
+    const headline = lines.find((l) => l.kind === 'pattern' || l.kind === 'compare') ?? lines[0];
+    if (!headline || headline.text === 'No trades this week.') return null;
+    return { text: headline.text, href: dow === 1 ? '/review?week=-1' : '/review' };
   }, [data, now]);
 
   const groups = useMemo(() => {
@@ -63,7 +80,7 @@ export default function JournalPage() {
   // Each day header carries that day's result, so the timeline reads like a ledger.
   const dayTrades = useMemo(() => {
     const m = new Map<string, Trade[]>();
-    for (const t of data.trades) {
+    for (const t of closedOnly(data.trades)) {
       const k = ymd(new Date(t.closedAt));
       m.set(k, [...(m.get(k) ?? []), t]);
     }
@@ -85,7 +102,7 @@ export default function JournalPage() {
   const today = mounted ? new Date(now).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '\u00a0';
 
   return (
-    <div className="page">
+    <div className={`page ${s.page}`}>
       <motion.header className="page-head" variants={stagger.parent} initial="hidden" animate="show">
         <motion.div className="eyebrow" variants={stagger.child}>{today}</motion.div>
         <motion.h1 className="page-title" variants={stagger.child}>What happened?</motion.h1>
@@ -103,20 +120,26 @@ export default function JournalPage() {
         <section className={`${s.prompts}`} aria-label="Trades waiting for a note">
           <AnimatePresence initial={false}>
           {awaiting.map((t) => (
-            <motion.button key={t.id} className={s.prompt} onClick={() => setPrompted(t)} {...listItem} whileTap={{ scale: 0.985 }}>
+            <motion.button key={t.id} className={s.prompt} data-open={isOpen(t) || undefined} onClick={() => setPrompted(t)} {...listItem} whileTap={{ scale: 0.985 }}>
               <span className={s.promptDot} aria-hidden />
               <span className={s.promptText}>
                 <strong>
                   {t.symbol} {t.side}
                 </strong>{' '}
-                closed{' '}
-                <span className={`num ${(t.r ?? t.pnl) >= 0 ? 'pos' : 'neg'}`}>
-                  {t.r != null ? fmt.r(t.r) : fmt.pnl(t.pnl)}
-                </span>
-                . What happened?
+                {isOpen(t) ? (
+                  <>opened. What’s the plan?</>
+                ) : (
+                  <>
+                    closed{' '}
+                    <span className={`num ${(t.r ?? t.pnl) >= 0 ? 'pos' : 'neg'}`}>
+                      {t.r != null ? fmt.r(t.r) : fmt.pnl(t.pnl)}
+                    </span>
+                    . What happened?
+                  </>
+                )}
               </span>
               <span className="faint" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                {fmt.relative(t.closedAt, now)}
+                {fmt.relative(isOpen(t) ? t.openedAt : t.closedAt, now)}
               </span>
             </motion.button>
           ))}
@@ -125,8 +148,17 @@ export default function JournalPage() {
       )}
 
 
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.5 }}>
-        <Composer />
+      {weekReady && mounted && (
+        <Link href={weekReady.href} className={s.weekReady}>
+          <span className={s.weekReadyLabel}>Your week, in review</span>
+          <span className={s.weekReadyText}>{weekReady.text}</span>
+          <span className={s.weekReadyCta}>Read your review <ArrowRight size={14} /></span>
+        </Link>
+      )}
+
+      {/* The one primary action: docked where the thumb is on phones, inline on desktop. */}
+      <motion.div className={s.dock} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.5 }}>
+        <Composer docked />
       </motion.div>
 
       {!ready && (
@@ -138,7 +170,7 @@ export default function JournalPage() {
 
       {isEmpty && (
         <motion.section className={`section ${s.onboard}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }}>
-          <h2 className="serif" style={{ fontSize: 26 }}>Set up in two minutes</h2>
+          <h2 className="display" style={{ fontSize: 21 }}>Set up in two minutes</h2>
           <p className="muted" style={{ marginTop: 4 }}>
             Numbers come from your platform. The story comes from you.
           </p>
@@ -231,16 +263,41 @@ export default function JournalPage() {
         </section>
       )}
 
-      <Sheet open={!!prompted} onClose={() => setPrompted(null)} title={prompted ? `${prompted.symbol} ${prompted.side}` : ''}>
+      <Sheet
+        open={!!prompted}
+        onClose={() => setPrompted(null)}
+        title={prompted ? `${prompted.symbol} ${prompted.side}${isOpen(prompted) ? ' · open' : ''}` : ''}
+      >
         {prompted && (
           <>
-            <div className={s.tradeFacts}>
-              <Fact label="Result" value={prompted.r != null ? fmt.r(prompted.r) : '—'} tone={(prompted.r ?? prompted.pnl) >= 0 ? 'pos' : 'neg'} />
-              <Fact label="P&L" value={fmt.pnl(prompted.pnl)} />
-              <Fact label="Closed" value={fmt.time(prompted.closedAt)} />
-              <Fact label="Setup" value={prompted.setup ?? '—'} />
-            </div>
-            <Composer trade={prompted} autoFocus onDone={() => setPrompted(null)} placeholder="Say it the way you’d tell a friend…" />
+            {isOpen(prompted) ? (
+              <div className={s.tradeFacts}>
+                <Fact label="Entry" value={String(prompted.entry || '—')} />
+                <Fact label="Stop" value={prompted.stop != null ? String(prompted.stop) : '—'} />
+                <Fact label="Opened" value={fmt.time(prompted.openedAt)} />
+                <Fact label="Setup" value={prompted.setup ?? '—'} />
+              </div>
+            ) : (
+              <>
+                <div className={s.tradeFacts}>
+                  <Fact label="Result" value={prompted.r != null ? fmt.r(prompted.r) : '—'} tone={(prompted.r ?? prompted.pnl) >= 0 ? 'pos' : 'neg'} />
+                  <Fact label="P&L" value={fmt.pnl(prompted.pnl)} />
+                  <Fact label="Closed" value={fmt.time(prompted.closedAt)} />
+                  <Fact label="Setup" value={prompted.setup ?? '—'} />
+                </div>
+                {/* Plan and outcome, side by side. */}
+                {(() => {
+                  const plan = data.entries.find((e) => e.tradeId === prompted.id && e.kind === 'plan');
+                  return plan ? <blockquote className={s.planQuote}><span>Your plan</span>{plan.text}</blockquote> : null;
+                })()}
+              </>
+            )}
+            <Composer
+              trade={prompted}
+              autoFocus
+              onDone={() => setPrompted(null)}
+              placeholder={isOpen(prompted) ? 'What’s the plan? Why this trade, where you’re wrong…' : 'Say it the way you’d tell a friend…'}
+            />
           </>
         )}
       </Sheet>
