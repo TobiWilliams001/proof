@@ -1,0 +1,82 @@
+.bars { margin: 0; }
+.plot {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  height: 132px;
+  align-items: end;
+  border-bottom: 1px solid var(--line-2);
+}
+.col {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  outline: none;
+}
+.bar {
+  display: block;
+  width: min(100%, 36px);
+  min-height: 0;
+  border-radius: 4px 4px 0 0;
+  transition: opacity 0.15s;
+}
+.bar[data-tone='pos'] { background: var(--pos); }
+.bar[data-tone='neg'] { background: var(--neg); }
+.val { font-size: 11px; color: var(--ink-2); margin-bottom: 4px; }
+
+.tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.tip :global(.faint) { color: inherit; opacity: 0.65; }
+.col:hover .tip, .col:focus-visible .tip { opacity: 1; }
+.col:hover .bar, .col:focus-visible .bar { opacity: 0.8; }
+.col:first-child .tip { left: 0; transform: none; }
+.col:last-child .tip { left: auto; right: 0; transform: none; }
+
+.axis {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  text-align: center;
+}
+.zero { color: var(--ink-2); }
+
+.equity { width: 100%; height: 200px; }
+@media (min-width: 640px) { .equity { height: 240px; } }
+.tt {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-2);
+  font-size: 12px;
+}
+.emptyChart {
+  display: grid;
+  place-items: center;
+  height: 140px;
+  color: var(--ink-3);
+  font-size: 13px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+}
