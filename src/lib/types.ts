@@ -25,6 +25,11 @@ export interface Trade {
   session: Session;
   source: 'manual' | 'csv' | 'sync' | 'demo';
   accountId?: string;
+  /**
+   * The platform's own identity for this trade. One position can be many deals
+   * (partial closes), so sync keys on (accountId, positionId) and keeps every deal.
+   */
+  platform?: { positionId: string; dealIds?: string[] };
 }
 
 export type EntryKind = 'trade_note' | 'missed' | 'rule_break' | 'plan' | 'reflection';

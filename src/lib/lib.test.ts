@@ -10,6 +10,7 @@ import { constrainToPlaybook, detectKind, detectR, detectSymbol, structureNote }
 import { sizeCrypto } from './calculator';
 import { buildCoachNote } from './coach';
 import { rFromPrices } from './stats';
+import { linkEarlyNotes } from './link';
 import { listTrades } from './tools';
 import type { Trade } from './types';
 
@@ -287,6 +288,30 @@ describe('plan at open, congruence, and the review speaking first', () => {
     for (const l of lines.filter((x) => x.kind !== 'summary' && x.kind !== 'suggestion')) {
       expect(l.tradeIds.length + l.entryIds.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('notes written before the trade arrives', () => {
+  const at = (h: number, m = 0) => new Date(2026, 9, 6, h, m).toISOString();
+  const trade = t({ id: 'eu', symbol: 'EURUSD', openedAt: at(9), closedAt: at(10) });
+  const note = (id: string, createdAt: string, symbol = 'EURUSD', kind: 'trade_note' | 'plan' = 'trade_note') => ({
+    id, kind, text: 'x', createdAt, structured: { symbol, tags: [], fields: {} },
+  });
+
+  it('links a note to the one trade it fits once that trade syncs', () => {
+    const [n] = linkEarlyNotes([note('n', at(10, 20))], [trade]);
+    expect(n.tradeId).toBe('eu');
+  });
+
+  it('links a plan written just before the open', () => {
+    const [p] = linkEarlyNotes([note('p', at(8, 30), 'EURUSD', 'plan')], [trade]);
+    expect(p.tradeId).toBe('eu');
+  });
+
+  it('never guesses: a different symbol, a far-off time, or two candidates stay unlinked', () => {
+    const twin = t({ id: 'eu2', symbol: 'EURUSD', openedAt: at(9, 30), closedAt: at(10, 30) });
+    const out = linkEarlyNotes([note('a', at(10, 5), 'GBPUSD'), note('b', at(23)), note('c', at(10, 10))], [trade, twin]);
+    expect(out.map((e) => e.tradeId)).toEqual([undefined, undefined, undefined]);
   });
 });
 

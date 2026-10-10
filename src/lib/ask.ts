@@ -250,9 +250,11 @@ export function answerQuestion(
             : intent.metric === 'pnl'
               ? ` across ${stats.count} trade${stats.count === 1 ? '' : 's'}`
               : '';
+      // Few trades can't carry a confident claim — say so rather than overstate it.
+      const hedge = stats.count < 5 ? ` That’s only ${stats.count} trade${stats.count === 1 ? '' : 's'}, so treat it as a hint, not a pattern.` : '';
       const scopeText = intent.ofBest ? `on ${filter[intent.ofBest as 'setup']}` : scope === 'all trades' ? 'overall' : `for ${scope}`;
       return {
-        text: `${prefix}Your ${METRIC_LABEL[intent.metric]} ${scopeText} is ${metricValue(intent.metric, stats)}${detail}.`,
+        text: `${prefix}Your ${METRIC_LABEL[intent.metric]} ${scopeText} is ${metricValue(intent.metric, stats)}${detail}.${hedge}`,
         highlights: statHighlights(stats),
         tradeIds, entryIds: [], toolCalls, scope,
       };

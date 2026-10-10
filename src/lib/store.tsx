@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { buildDemo } from './demo';
 import { rFromPrices } from './stats';
+import { linkEarlyNotes } from './link';
 import { uid } from './id';
 import { emptyJournal, storage } from './storage';
 import type { Entry, JournalData, Playbook, QuestionLog, Trade } from './types';
@@ -84,12 +85,18 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         update((d) => ({ ...d, entries: d.entries.filter((e) => e.id !== id) }));
       },
       addTrades(trades) {
-        // Re-importing an overlapping history must not double-count trades.
-        const key = (t: Trade) => `${t.symbol}|${t.side}|${t.closedAt}|${t.pnl}`;
+        // Re-importing an overlapping history must not double-count trades. The
+        // platform's position id is the true identity when there is one.
+        const key = (t: Trade) =>
+          t.platform ? `p|${t.accountId ?? ''}|${t.platform.positionId}` : `${t.symbol}|${t.side}|${t.closedAt}|${t.pnl}`;
         const seen = new Set(data.trades.map(key));
         const fresh = trades.filter((t) => !seen.has(key(t)) && seen.add(key(t)));
         if (fresh.length) {
-          update((d) => ({ ...d, trades: [...fresh, ...d.trades].sort((a, b) => b.closedAt.localeCompare(a.closedAt)) }));
+          update((d) => ({
+            ...d,
+            trades: [...fresh, ...d.trades].sort((a, b) => b.closedAt.localeCompare(a.closedAt)),
+            entries: linkEarlyNotes(d.entries, fresh),
+          }));
         }
         return fresh.length;
       },
