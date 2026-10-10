@@ -1,0 +1,221 @@
+import { describe, expect, it } from 'vitest';
+import { answerQuestion } from './ask';
+import { guessMapping, parseCSV, parseDate, rowsToTrades } from './csv';
+import { parsePeriod, startOfWeek, ymd } from './dates';
+import { buildDemo, DEMO_PLAYBOOK } from './demo';
+import { buildWeeklyReview } from './review';
+import { computeStats, outcomeOf, rDistribution } from './stats';
+import { migrateLegacy } from './storage';
+import { constrainToPlaybook, detectKind, detectR, detectSymbol, structureNote } from './structure';
+import { sizeCrypto } from './calculator';
+import { listTrades } from './tools';
+import type { Trade } from './types';
+
+const t = (over: Partial<Trade>): Trade => ({
+  id: Math.random().toString(36),
+  symbol: 'EURUSD',
+  side: 'long',
+  openedAt: '2026-10-06T09:00:00.000Z',
+  closedAt: '2026-10-06T10:00:00.000Z',
+  entry: 1,
+  exit: 1,
+  size: 1,
+  pnl: 0,
+  r: 0,
+  session: 'London',
+  source: 'manual',
+  ...over,
+});
+
+describe('stats', () => {
+  it('counts outcomes from R, falling back to P&L when R is unknown', () => {
+    expect(outcomeOf(t({ r: 1.2 }))).toBe('win');
+    expect(outcomeOf(t({ r: 0.01 }))).toBe('be');
+    expect(outcomeOf(t({ r: null, pnl: -40 }))).toBe('loss');
+  });
+
+  it('averages R only over trades where R is known', () => {
+    const s = computeStats([t({ r: 2, pnl: 200 }), t({ r: -1, pnl: -100 }), t({ r: null, pnl: 50 })]);
+    expect(s.count).toBe(3);
+    expect(s.wins).toBe(2);
+    expect(s.avgR).toBe(0.5);
+    expect(s.rCount).toBe(2);
+    expect(s.pnl).toBe(150);
+  });
+
+  it('clamps outliers into the outer distribution bins', () => {
+    const d = rDistribution([t({ r: 9 }), t({ r: -7 }), t({ r: 0.4 })]);
+    expect(d.find((b) => b.bin === 3)!.count).toBe(1);
+    expect(d.find((b) => b.bin === -3)!.count).toBe(1);
+    expect(d.find((b) => b.bin === 0)!.count).toBe(1);
+  });
+});
+
+describe('structuring', () => {
+  it('detects symbols in common spellings', () => {
+    expect(detectSymbol('long eur/usd here')).toBe('EURUSD');
+    expect(detectSymbol('gold looked heavy')).toBe('XAUUSD');
+    expect(detectSymbol('NAS100 short')).toBe('NAS100');
+    expect(detectSymbol('felt tired')).toBeUndefined();
+  });
+
+  it('classifies the brief’s example notes', () => {
+    expect(detectKind('Saw a 3-touch on GBPUSD at 1.2650, didn’t take it, would’ve been +4R.')).toBe('missed');
+    expect(detectKind('Took a trade outside my rules, revenge after a loss.')).toBe('rule_break');
+    expect(detectKind('Watching XAUUSD at 2,340 for a footprint entry today.')).toBe('plan');
+    expect(detectKind('Tired, slept badly, cut size.')).toBe('reflection');
+  });
+
+  it('maps only to the trader’s own playbook and asks one question when ambiguous', () => {
+    const r = structureNote('Was it the RE or the RRE on EURUSD? +2R, patient', DEMO_PLAYBOOK);
+    expect(r.structured.setup).toBeUndefined();
+    expect(r.clarify?.options).toEqual(['2-touch', '3-touch']);
+    expect(r.structured.tags).toContain('patient');
+
+    const clear = structureNote('two touch on gbpjpy, early entry, -1R', DEMO_PLAYBOOK);
+    expect(clear.structured.setup).toBe('2-touch');
+    expect(clear.structured.r).toBe(-1);
+    expect(clear.structured.tags).toEqual(['early entry']);
+    expect(clear.clarify).toBeUndefined();
+  });
+
+  it('never asks about setup on reflections', () => {
+    expect(structureNote('Tired, slept badly, cut size.', DEMO_PLAYBOOK).clarify).toBeUndefined();
+  });
+
+  it('drops LLM output that is not in the playbook', () => {
+    const s = constrainToPlaybook({ setup: 'Wyckoff spring', tags: ['patient', 'made-up'], fields: { Timeframe: '2D' } }, DEMO_PLAYBOOK);
+    expect(s.setup).toBeUndefined();
+    expect(s.tags).toEqual(['patient']);
+    expect(s.fields).toEqual({});
+  });
+});
+
+describe('dates', () => {
+  const now = new Date(2026, 9, 10, 12); // Sat 10 Oct 2026
+  it('starts weeks on Monday', () => expect(ymd(startOfWeek(now))).toBe('2026-10-05'));
+  it('parses relative periods', () => {
+    expect(parsePeriod('win rate this month', now)?.label).toBe('this month');
+    expect(parsePeriod('last 14 days', now)?.label).toBe('the last 14 days');
+    expect(parsePeriod('all time', now)).toBeUndefined();
+  });
+});
+
+describe('tools', () => {
+  it('filters trades by linked-note terms', () => {
+    const a = t({ id: 'a' });
+    const b = t({ id: 'b' });
+    const ctx = {
+      trades: [a, b],
+      entries: [{ id: 'e', kind: 'trade_note' as const, text: 'Felt tired', tradeId: 'a', createdAt: a.closedAt }],
+    };
+    expect(listTrades(ctx, { noteTerm: 'tired' }).map((x) => x.id)).toEqual(['a']);
+    expect(listTrades(ctx, { excludeNoteTerm: 'tired' }).map((x) => x.id)).toEqual(['b']);
+  });
+});
+
+describe('ask your journal', () => {
+  const now = new Date(2026, 9, 10, 12);
+  const demo = buildDemo(now);
+  const ctx = { trades: demo.trades, entries: demo.entries };
+
+  it('answers the definition-of-done question with cited trades', () => {
+    const a = answerQuestion("What's my win rate on my best setup?", ctx, demo.playbook, now);
+    expect(a.toolCalls.map((c) => c.tool)).toEqual(['group_stats', 'get_stats']);
+    const cited = demo.trades.filter((x) => a.tradeIds.includes(x.id));
+    expect(cited.length).toBeGreaterThan(0);
+    expect(new Set(cited.map((x) => x.setup)).size).toBe(1);
+    const s = computeStats(cited);
+    expect(a.text).toContain(`${Math.round(s.winRate * 100)}%`);
+  });
+
+  it('is honest when there is no data', () => {
+    const a = answerQuestion('win rate?', { trades: [], entries: [] }, demo.playbook, now);
+    expect(a.unsure).toBe(true);
+    expect(a.tradeIds).toEqual([]);
+  });
+});
+
+describe('weekly review', () => {
+  it('summarises only the given week', () => {
+    const now = new Date(2026, 9, 10, 12);
+    const demo = buildDemo(now);
+    const r = buildWeeklyReview(demo.trades, demo.entries, now);
+    expect(r.weekStart).toBe('2026-10-05');
+    expect(r.trades.every((x) => x.closedAt >= new Date(2026, 9, 5).toISOString())).toBe(true);
+    expect(r.stats.count).toBe(r.trades.length);
+  });
+});
+
+describe('csv import', () => {
+  it('parses quoted fields and MT5-style headers', () => {
+    const rows = parseCSV('Time,Symbol,Type,Volume,Price,Profit,Comment\n2026.10.06 10:15,EURUSD,sell,1.00,1.0842,"1,250.50","note, with comma"\n,,,,,,\n');
+    const map = guessMapping(rows[0]);
+    expect(map).toMatchObject({ closedAt: 0, symbol: 1, side: 2, size: 3, entry: 4, pnl: 5 });
+    const { trades, skipped } = rowsToTrades(rows.slice(1), map);
+    expect(skipped).toBe(0);
+    expect(trades[0]).toMatchObject({ symbol: 'EURUSD', side: 'short', pnl: 1250.5 });
+  });
+});
+
+describe('csv edge cases', () => {
+  it('keeps semicolons inside fields when the file is comma-delimited', () => {
+    const rows = parseCSV('symbol,pnl,setup\nEURUSD,10,"a;b"\nGBPUSD,5,c;d\n');
+    expect(rows[1]).toEqual(['EURUSD', '10', 'a;b']);
+    expect(rows[2]).toEqual(['GBPUSD', '5', 'c;d']);
+  });
+
+  it('reads semicolon-delimited exports (European spreadsheets)', () => {
+    expect(parseCSV('Symbol;Profit\r\nEURUSD;12.5\r\n')).toEqual([['Symbol', 'Profit'], ['EURUSD', '12.5']]);
+  });
+
+  it('parses MT4/5 and ISO-ish dates as local time', () => {
+    const d = parseDate('2026.10.06 10:15')!;
+    expect([d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes()]).toEqual([2026, 9, 6, 10, 15]);
+    expect(parseDate('2026-10-06')!.getDate()).toBe(6);
+    expect(parseDate('nonsense')).toBeNull();
+  });
+});
+
+describe('review regressions', () => {
+  it('reads the sign of "lost 1R" from the words around it', () => {
+    expect(detectR('lost 1R on that one')).toBe(-1);
+    expect(detectR('stopped out for 1.5R')).toBe(-1.5);
+    expect(detectR('banked 2R')).toBe(2);
+    expect(detectR('+3R after losing earlier')).toBe(3);
+  });
+
+  it('imports accounting negatives, decimal commas and zoned timestamps correctly', () => {
+    const rows = [['2024-01-15T10:30:00.000Z', 'EURUSD', '(45.20)'], ['15.01.2024 10:30', 'GBPUSD', '1.234,50']];
+    const { trades, skipped } = rowsToTrades(rows, { closedAt: 0, symbol: 1, pnl: 2 });
+    expect(skipped).toBe(0);
+    expect(trades[0].pnl).toBe(-45.2);
+    expect(trades[0].closedAt).toBe('2024-01-15T10:30:00.000Z');
+    expect(trades[1].pnl).toBe(1234.5);
+    expect(guessMapping(['closed_at', 'symbol', 'pnl'])).toMatchObject({ closedAt: 0 });
+  });
+
+  it('gives no reward for a target on the wrong side of entry', () => {
+    const r = sizeCrypto({ balance: 1000, riskPct: 1, entry: 100, stop: 95, target: 90, leverage: 1, side: 'long', futures: false })!;
+    expect(r.profit).toBe(0);
+    expect(r.targetWrongSide).toBe(true);
+  });
+
+  it("doesn't let a rule break on last week's trade lower this week's adherence", () => {
+    const now = new Date(2026, 9, 10, 12);
+    const thisWeek = t({ id: 'tw', closedAt: new Date(2026, 9, 6, 10).toISOString(), r: 1, pnl: 100 });
+    const lastWeek = t({ id: 'lw', closedAt: new Date(2026, 8, 30, 10).toISOString(), r: -1, pnl: -100 });
+    const brk = { id: 'b', kind: 'rule_break' as const, text: 'revenge', tradeId: 'lw', createdAt: new Date(2026, 9, 6, 18).toISOString() };
+    expect(buildWeeklyReview([thisWeek, lastWeek], [brk], now).adherence).toBe(1);
+  });
+});
+
+describe('legacy migration', () => {
+  it('turns Edgelog notes into journal entries linked to their trade', () => {
+    const { trades, entries } = migrateLegacy([
+      { id: 1, date: '2026-04-30', pair: 'BTC/USDT', side: 'long', entry: 1, exit: 2, size: 1, pnl: 10, r: 2, notes: 'clean break' },
+    ]);
+    expect(trades[0].symbol).toBe('BTCUSDT');
+    expect(entries[0]).toMatchObject({ tradeId: trades[0].id, text: 'clean break' });
+  });
+});
