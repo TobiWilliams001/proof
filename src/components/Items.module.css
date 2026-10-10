@@ -70,3 +70,14 @@
 .tradeNums { display: grid; justify-items: end; gap: 1px; flex: none; }
 .r { font-size: 16px; font-weight: 500; }
 .pnl { font-size: 12px; color: var(--ink-3); }
+
+.openBadge {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-strong);
+  color: var(--k-plan);
+  background: color-mix(in srgb, var(--k-plan) 14%, transparent);
+}
+.mark[data-o='open'] { background: var(--k-plan); }

@@ -1,4 +1,4 @@
-import type { Outcome, Trade } from './types';
+import { closedOnly, type Outcome, type Side, type Trade } from './types';
 
 // Below this, a P&L is noise from fees/spread rather than a real result.
 const BE_EPSILON = 0.005;
@@ -28,7 +28,8 @@ export interface Stats {
   worstR: number | null;
 }
 
-export function computeStats(trades: Trade[]): Stats {
+export function computeStats(all: Trade[]): Stats {
+  const trades = closedOnly(all);
   let wins = 0, losses = 0, breakeven = 0, pnl = 0, totalR = 0, rCount = 0;
   let bestR: number | null = null;
   let worstR: number | null = null;
@@ -65,7 +66,7 @@ export type GroupKey = 'setup' | 'symbol' | 'session' | 'side';
 
 export function groupStats(trades: Trade[], key: GroupKey) {
   const groups = new Map<string, Trade[]>();
-  for (const t of trades) {
+  for (const t of closedOnly(trades)) {
     const k = (key === 'setup' ? t.setup : t[key]) || 'Untagged';
     groups.set(k, [...(groups.get(k) ?? []), t]);
   }
@@ -75,7 +76,7 @@ export function groupStats(trades: Trade[], key: GroupKey) {
 }
 
 export function equitySeries(trades: Trade[]) {
-  const sorted = [...trades].sort((a, b) => a.closedAt.localeCompare(b.closedAt));
+  const sorted = closedOnly(trades).sort((a, b) => a.closedAt.localeCompare(b.closedAt));
   let cum = 0;
   let cumR = 0;
   return sorted.map((t, i) => {
@@ -92,7 +93,7 @@ export function equitySeries(trades: Trade[]) {
 export function rDistribution(trades: Trade[]) {
   const bins = new Map<number, number>();
   for (let b = -3; b <= 3; b++) bins.set(b, 0);
-  for (const t of trades) {
+  for (const t of closedOnly(trades)) {
     if (t.r == null) continue;
     const b = Math.max(-3, Math.min(3, Math.floor(t.r)));
     bins.set(b, (bins.get(b) ?? 0) + 1);
@@ -103,4 +104,16 @@ export function rDistribution(trades: Trade[]) {
 export function round(n: number, dp: number) {
   const f = 10 ** dp;
   return Math.round(n * f) / f;
+}
+
+/**
+ * R from prices: how far price moved in the trader's favour, in units of the
+ * risk they took (entry→stop). Null when there's no valid stop — never guessed.
+ */
+export function rFromPrices(side: Side, entry: number, stop: number | undefined, exit: number): number | null {
+  if (stop == null || !entry || !exit) return null;
+  const risk = side === 'long' ? entry - stop : stop - entry;
+  if (!(risk > 0)) return null;
+  const move = side === 'long' ? exit - entry : entry - exit;
+  return round(move / risk, 2);
 }

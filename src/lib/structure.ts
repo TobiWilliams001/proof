@@ -1,4 +1,4 @@
-import type { EntryKind, Playbook, Side, Structured, Trade } from './types';
+import type { EntryKind, Playbook, PlaybookSetup, Side, Structured, Trade } from './types';
 
 /**
  * Local, deterministic note structuring. It runs instantly and offline (the
@@ -10,6 +10,8 @@ export interface Clarify {
   field: 'setup';
   question: string;
   options: string[];
+  /** The words the trader used for each option ("RE" for 2-touch), shown on the chips. */
+  labels: Record<string, string>;
 }
 
 export interface StructureResult {
@@ -107,6 +109,12 @@ function containsPhrase(haystack: string, needle: string): boolean {
   return new RegExp(`(^| )${escaped}( |$)`).test(haystack);
 }
 
+/** The name or alias the trader actually used for a setup. */
+export function spokenName(text: string, setup: PlaybookSetup): string {
+  const hay = canon(text);
+  return [...(setup.aliases ?? []), setup.name].find((n) => containsPhrase(hay, n)) ?? setup.name;
+}
+
 export function matchSetups(text: string, playbook: Playbook): string[] {
   const hay = canon(text);
   return playbook.setups
@@ -139,7 +147,8 @@ export function structureNote(
   playbook: Playbook,
   trade?: Trade,
 ): StructureResult {
-  const kind = detectKind(text, { linkedTrade: !!trade });
+  // A note on a position that's still open is the plan, captured before the outcome.
+  const kind = trade?.status === 'open' ? 'plan' : detectKind(text, { linkedTrade: !!trade });
   const setups = matchSetups(text, playbook);
   const structured: Structured = {
     symbol: trade?.symbol ?? detectSymbol(text),
@@ -162,10 +171,16 @@ export function structureNote(
   let clarify: Clarify | undefined;
   const setupMatters = (kind === 'trade_note' || kind === 'missed') && playbook.setups.length > 0;
   if (setupMatters && setups.length > 1) {
+    // Ask in the trader's own words: "Was this your RE or RRE?"
+    const labels = Object.fromEntries(
+      setups.map((n) => [n, spokenName(text, playbook.setups.find((x) => x.name === n)!)]),
+    );
+    const said = setups.map((n) => labels[n]);
     clarify = {
       field: 'setup',
-      question: `Was this your ${setups.slice(0, -1).join(', ')} or ${setups.at(-1)}?`,
+      question: `Was this your ${said.slice(0, -1).join(', ')} or ${said.at(-1)}?`,
       options: setups,
+      labels,
     };
     confidence = Math.min(confidence, 0.6);
   } else if (setupMatters && setups.length === 0 && !trade?.setup) {
@@ -173,6 +188,7 @@ export function structureNote(
       field: 'setup',
       question: 'Which setup was this?',
       options: playbook.setups.slice(0, 6).map((s) => s.name),
+      labels: Object.fromEntries(playbook.setups.slice(0, 6).map((s) => [s.name, s.name])),
     };
   } else if (!structured.setup && trade?.setup) {
     structured.setup = trade.setup;

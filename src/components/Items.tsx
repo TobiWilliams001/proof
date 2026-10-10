@@ -3,7 +3,7 @@
 import { Link2, MessageSquareText, Trash2 } from 'lucide-react';
 import { fmt } from '@/lib/format';
 import { outcomeOf } from '@/lib/stats';
-import { KIND_LABEL, type Entry, type Trade } from '@/lib/types';
+import { isOpen, KIND_LABEL, type Entry, type Trade } from '@/lib/types';
 import s from './Items.module.css';
 
 export function EntryItem({
@@ -78,7 +78,7 @@ export function TradeItem({
   noteCount?: number;
   onClick?: () => void;
 }) {
-  const o = outcomeOf(trade);
+  const o = isOpen(trade) ? 'open' : outcomeOf(trade);
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag className={`list-item ${s.trade}`} onClick={onClick}>
@@ -96,15 +96,19 @@ export function TradeItem({
           )}
         </span>
         <span className={s.tradeSub}>
-          {trade.setup ?? 'No setup'} · {fmt.date(trade.closedAt)} {fmt.time(trade.closedAt)}
+          {trade.setup ?? 'No setup'} · {isOpen(trade) ? 'opened ' : ''}{fmt.date(isOpen(trade) ? trade.openedAt : trade.closedAt)} {fmt.time(isOpen(trade) ? trade.openedAt : trade.closedAt)}
         </span>
       </span>
+      {isOpen(trade) ? (
+        <span className={s.openBadge}>Open</span>
+      ) : (
       <span className={s.tradeNums}>
         <span className={`num ${s.r} ${o === 'win' ? 'pos' : o === 'loss' ? 'neg' : 'faint'}`}>
           {trade.r != null ? fmt.r(trade.r) : '—'}
         </span>
         <span className={`num ${s.pnl}`}>{fmt.pnl(trade.pnl)}</span>
       </span>
+      )}
     </Tag>
   );
 }

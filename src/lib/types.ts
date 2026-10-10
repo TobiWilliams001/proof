@@ -10,8 +10,13 @@ export interface Trade {
   symbol: string;
   side: Side;
   openedAt: string; // ISO
+  /** For an open position this mirrors openedAt until it closes; use isOpen() to tell. */
   closedAt: string; // ISO
+  /** Absent means closed. Open positions never count toward stats. */
+  status?: 'open';
   entry: number;
+  /** Lets R be computed when the trade closes, instead of guessed. */
+  stop?: number;
   exit: number;
   size: number;
   pnl: number;
@@ -40,6 +45,8 @@ export interface Entry {
   tradeId?: string;
   structured?: Structured;
   confidence?: number;
+  /** One-tap answer after a close: did the trader follow their plan? */
+  followedPlan?: boolean;
   createdAt: string;
 }
 
@@ -94,3 +101,7 @@ export const KIND_LABEL: Record<EntryKind, string> = {
   plan: 'Plan',
   reflection: 'Reflection',
 };
+
+export const isOpen = (t: Trade) => t.status === 'open';
+/** Stats, reviews and answers only ever look at closed trades. */
+export const closedOnly = (ts: Trade[]) => ts.filter((t) => !isOpen(t));

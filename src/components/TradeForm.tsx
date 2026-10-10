@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { sessionFor } from '@/lib/format';
+import { fmt, sessionFor } from '@/lib/format';
 import { uid } from '@/lib/id';
+import { rFromPrices } from '@/lib/stats';
 import { normalizeSymbol } from '@/lib/structure';
 import type { Playbook, Side, Trade } from '@/lib/types';
 
@@ -15,18 +16,31 @@ function parseNum(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Manual entry — a fallback for when there's no sync or history file. */
+/**
+ * Manual entry — a fallback for when there's no sync or history file.
+ * "Still open" records a position so its plan can be captured before the outcome.
+ */
 export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t: Trade) => void }) {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const [f, setF] = useState({ symbol: '', side: 'long' as Side, closedAt: local, pnl: '', r: '', entry: '', exit: '', setup: '' });
+  const [state, setState] = useState<'closed' | 'open'>('closed');
+  const [f, setF] = useState({ symbol: '', side: 'long' as Side, when: local, pnl: '', r: '', entry: '', exit: '', stop: '', setup: '' });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
+
+  const isOpen = state === 'open';
   const pnl = parseNum(f.pnl);
-  const r = f.r.trim() === '' ? null : parseNum(f.r);
-  const closed = new Date(f.closedAt);
-  const dateOk = !Number.isNaN(closed.getTime());
-  const rOk = f.r.trim() === '' || r != null;
-  const valid = !!f.symbol.trim() && pnl != null && dateOk && rOk;
+  const entry = parseNum(f.entry);
+  const exit = parseNum(f.exit);
+  const stop = parseNum(f.stop);
+  const typedR = f.r.trim() === '' ? null : parseNum(f.r);
+  // When R isn't typed, work it out from prices — but only if all three are there.
+  const priceR = entry != null && exit != null ? rFromPrices(f.side, entry, stop ?? undefined, exit) : null;
+  const r = typedR ?? priceR;
+  const when = new Date(f.when);
+  const dateOk = !Number.isNaN(when.getTime());
+  const rOk = f.r.trim() === '' || typedR != null;
+  const stopOk = f.stop.trim() === '' || stop != null;
+  const valid = !!f.symbol.trim() && dateOk && stopOk && (isOpen ? entry != null : pnl != null && rOk);
 
   return (
     <form
@@ -34,24 +48,31 @@ export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t
       onSubmit={(e) => {
         e.preventDefault();
         if (!valid) return;
-        const closedAt = closed.toISOString();
+        const at = when.toISOString();
         onSave({
           id: uid('t_'),
           symbol: normalizeSymbol(f.symbol),
           side: f.side,
-          openedAt: closedAt,
-          closedAt,
-          entry: parseNum(f.entry) ?? 0,
-          exit: parseNum(f.exit) ?? 0,
+          openedAt: at,
+          closedAt: at,
+          ...(isOpen ? { status: 'open' as const } : {}),
+          entry: entry ?? 0,
+          stop: stop ?? undefined,
+          exit: isOpen ? 0 : exit ?? 0,
           size: 0,
-          pnl: pnl!,
-          r,
+          pnl: isOpen ? 0 : pnl!,
+          r: isOpen ? null : r,
           setup: f.setup || undefined,
-          session: sessionFor(closedAt),
+          session: sessionFor(at),
           source: 'manual',
         });
       }}
     >
+      <div className="seg" role="group" aria-label="Trade status" style={{ display: 'flex' }}>
+        <button type="button" aria-pressed={!isOpen} onClick={() => setState('closed')} style={{ flex: 1 }}>Closed</button>
+        <button type="button" aria-pressed={isOpen} onClick={() => setState('open')} style={{ flex: 1 }}>Still open</button>
+      </div>
+
       <div className="grid-2">
         <label className="field">
           <span className="label">Symbol</span>
@@ -68,21 +89,37 @@ export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t
           </div>
         </div>
       </div>
-      <div className="grid-2">
-        <label className="field">
-          <span className="label">P&L ($)</span>
-          <input className="input num" inputMode="text" enterKeyHint="next" value={f.pnl} onChange={set('pnl')} placeholder="-80 or 240" required aria-invalid={f.pnl !== '' && pnl == null} />
-        </label>
-        <label className="field">
-          <span className="label">R multiple <span className="faint">(optional)</span></span>
-          <input className="input num" inputMode="text" value={f.r} onChange={set('r')} placeholder="2.4 or -1" aria-invalid={!rOk} />
-        </label>
-      </div>
+
+      {isOpen ? (
+        <div className="grid-2">
+          <label className="field">
+            <span className="label">Entry</span>
+            <input className="input num" inputMode="text" value={f.entry} onChange={set('entry')} placeholder="1.2650" required />
+          </label>
+          <label className="field">
+            <span className="label">Stop <span className="faint">(for R later)</span></span>
+            <input className="input num" inputMode="text" value={f.stop} onChange={set('stop')} placeholder="1.2680" aria-invalid={!stopOk} />
+          </label>
+        </div>
+      ) : (
+        <div className="grid-2">
+          <label className="field">
+            <span className="label">P&L ($)</span>
+            <input className="input num" inputMode="text" enterKeyHint="next" value={f.pnl} onChange={set('pnl')} placeholder="-80 or 240" required aria-invalid={f.pnl !== '' && pnl == null} />
+          </label>
+          <label className="field">
+            <span className="label">R <span className="faint">(optional)</span></span>
+            <input className="input num" inputMode="text" value={f.r} onChange={set('r')} placeholder={priceR != null ? fmt.r(priceR) : '2.4 or -1'} aria-invalid={!rOk} />
+          </label>
+        </div>
+      )}
+
       <label className="field">
-        <span className="label">Closed</span>
-        <input className="input" type="datetime-local" value={f.closedAt} onChange={set('closedAt')} required aria-invalid={!dateOk} />
-        {!dateOk && <span className="neg" style={{ fontSize: 12 }}>Pick when the trade closed.</span>}
+        <span className="label">{isOpen ? 'Opened' : 'Closed'}</span>
+        <input className="input" type="datetime-local" value={f.when} onChange={set('when')} required aria-invalid={!dateOk} />
+        {!dateOk && <span className="neg" style={{ fontSize: 12 }}>Pick when the trade {isOpen ? 'opened' : 'closed'}.</span>}
       </label>
+
       {playbook.setups.length > 0 && (
         <label className="field">
           <span className="label">Setup</span>
@@ -94,15 +131,25 @@ export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t
           </select>
         </label>
       )}
-      <details>
-        <summary className="label" style={{ cursor: 'pointer', padding: '4px 0' }}>Prices</summary>
-        <div className="grid-2" style={{ marginTop: 10 }}>
-          <input className="input num" inputMode="decimal" value={f.entry} onChange={set('entry')} placeholder="Entry" aria-label="Entry price" />
-          <input className="input num" inputMode="decimal" value={f.exit} onChange={set('exit')} placeholder="Exit" aria-label="Exit price" />
-        </div>
-      </details>
+
+      {!isOpen && (
+        <details>
+          <summary className="label" style={{ cursor: 'pointer', padding: '10px 0' }}>Prices</summary>
+          <div className="grid-2" style={{ marginTop: 10 }}>
+            <input className="input num" inputMode="text" value={f.entry} onChange={set('entry')} placeholder="Entry" aria-label="Entry price" />
+            <input className="input num" inputMode="text" value={f.exit} onChange={set('exit')} placeholder="Exit" aria-label="Exit price" />
+            <input className="input num" inputMode="text" value={f.stop} onChange={set('stop')} placeholder="Stop" aria-label="Stop price" />
+          </div>
+          {priceR != null && typedR == null && (
+            <p className="faint" style={{ fontSize: 13, marginTop: 8 }}>
+              That’s <span className={`num ${priceR >= 0 ? 'pos' : 'neg'}`}>{fmt.r(priceR)}</span> against your stop.
+            </p>
+          )}
+        </details>
+      )}
+
       <button className="btn btn-primary btn-block" disabled={!valid} style={{ marginTop: 6 }}>
-        Add trade
+        {isOpen ? 'Add open trade' : 'Add trade'}
       </button>
     </form>
   );

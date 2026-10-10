@@ -1,5 +1,5 @@
 import { computeStats, groupStats, type GroupKey, type Stats } from './stats';
-import type { Entry, EntryKind, Session, Side, Trade } from './types';
+import { isOpen, type Entry, type EntryKind, type Session, type Side, type Trade } from './types';
 
 /**
  * The only operations "Ask your journal" may perform (brief §8). They are
@@ -23,6 +23,8 @@ export interface TradeFilter {
   noteTerm?: string;
   /** Only trades whose linked notes do NOT mention this term. */
   excludeNoteTerm?: string;
+  /** Only trades where the trader answered "did you follow your plan?" this way. */
+  followedPlan?: boolean;
 }
 
 export interface NoteFilter {
@@ -46,11 +48,24 @@ function tradesMentioning(ctx: JournalContext, term: string): Set<string> {
   );
 }
 
+/** Latest "did you follow your plan?" answer per trade. */
+export function congruence(ctx: JournalContext): Map<string, boolean> {
+  const m = new Map<string, boolean>();
+  const answered = ctx.entries
+    .filter((e) => e.tradeId && e.followedPlan != null)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  for (const e of answered) m.set(e.tradeId!, e.followedPlan!);
+  return m;
+}
+
 export function listTrades(ctx: JournalContext, f: TradeFilter = {}): Trade[] {
   const withTerm = f.noteTerm ? tradesMentioning(ctx, f.noteTerm) : null;
   const withoutTerm = f.excludeNoteTerm ? tradesMentioning(ctx, f.excludeNoteTerm) : null;
+  const plan = f.followedPlan == null ? null : congruence(ctx);
   return ctx.trades
     .filter((t) => {
+      if (isOpen(t)) return false;
+      if (plan && plan.get(t.id) !== f.followedPlan) return false;
       if (f.symbol && t.symbol !== f.symbol) return false;
       if (f.setup && (t.setup ?? '').toLowerCase() !== f.setup.toLowerCase()) return false;
       if (f.side && t.side !== f.side) return false;

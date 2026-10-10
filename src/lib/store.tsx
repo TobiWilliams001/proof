@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { buildDemo } from './demo';
+import { rFromPrices } from './stats';
 import { uid } from './id';
 import { emptyJournal, storage } from './storage';
 import type { Entry, JournalData, Playbook, QuestionLog, Trade } from './types';
@@ -9,12 +10,16 @@ import type { Entry, JournalData, Playbook, QuestionLog, Trade } from './types';
 interface JournalApi {
   data: JournalData;
   ready: boolean;
+  /** True when the last save to this device failed — nothing is lost silently. */
+  saveFailed: boolean;
   addEntry(e: Omit<Entry, 'id' | 'createdAt'>): Entry;
   updateEntry(id: string, patch: Partial<Entry>): void;
   deleteEntry(id: string): void;
   /** Returns how many were new (duplicates of existing trades are skipped). */
   addTrades(trades: Trade[]): number;
   deleteTrade(id: string): void;
+  /** Closes an open position; R comes from the stop when one was given. */
+  closeTrade(id: string, close: { exit: number; pnl: number; closedAt: string }): void;
   setPlaybook(p: Playbook): void;
   logQuestion(q: Omit<QuestionLog, 'id' | 'askedAt'>): void;
   setImprovement(weekStart: string, improvement: string): void;
@@ -27,6 +32,7 @@ const Ctx = createContext<JournalApi | null>(null);
 export function JournalProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<JournalData>(emptyJournal);
   const [ready, setReady] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const loaded = useRef(false);
   const fromOtherTab = useRef(false);
 
@@ -43,7 +49,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       fromOtherTab.current = false;
       return;
     }
-    if (loaded.current) storage.save(data);
+    if (loaded.current) storage.save(data).then((ok) => setSaveFailed(!ok));
   }, [data]);
 
   // The installed app and a browser tab share storage; pick up the other's writes
@@ -65,6 +71,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     () => ({
       data,
       ready,
+      saveFailed,
       addEntry(e) {
         const entry: Entry = { ...e, id: uid('e_'), createdAt: new Date().toISOString() };
         update((d) => ({ ...d, entries: [entry, ...d.entries] }));
@@ -85,6 +92,19 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           update((d) => ({ ...d, trades: [...fresh, ...d.trades].sort((a, b) => b.closedAt.localeCompare(a.closedAt)) }));
         }
         return fresh.length;
+      },
+      closeTrade(id, { exit, pnl, closedAt }) {
+        update((d) => ({
+          ...d,
+          trades: d.trades
+            .map((t) => {
+              if (t.id !== id) return t;
+              const { status: _open, ...closed } = t;
+              void _open;
+              return { ...closed, exit, pnl, closedAt, r: rFromPrices(t.side, t.entry, t.stop, exit) };
+            })
+            .sort((a, b) => b.closedAt.localeCompare(a.closedAt)),
+        }));
       },
       deleteTrade(id) {
         update((d) => ({
@@ -115,7 +135,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
         setData(emptyJournal());
       },
     }),
-    [data, ready, update],
+    [data, ready, saveFailed, update],
   );
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

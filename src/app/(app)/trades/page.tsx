@@ -3,18 +3,18 @@
 import { Plus, Search, Trash2, Upload } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EquityCurve } from '@/components/Charts';
 import { Composer } from '@/components/Composer';
 import { EntryItem, TradeItem } from '@/components/Items';
 import { Sheet } from '@/components/Sheet';
 import { TradeForm } from '@/components/TradeForm';
 import { fmt } from '@/lib/format';
-import { computeStats, groupStats, type GroupKey } from '@/lib/stats';
+import { computeStats, groupStats, rFromPrices, type GroupKey } from '@/lib/stats';
 import { Reveal } from '@/components/motion';
 import { useJournal } from '@/lib/store';
 import { useNow } from '@/lib/useNow';
-import type { Trade } from '@/lib/types';
+import { closedOnly, isOpen, type Trade } from '@/lib/types';
 
 const RANGES = [
   { id: '30', label: '30d', days: 30 },
@@ -23,7 +23,7 @@ const RANGES = [
 ] as const;
 
 export default function TradesPage() {
-  const { data, ready, addTrades, deleteTrade, deleteEntry } = useJournal();
+  const { data, ready, addTrades, deleteTrade, deleteEntry, closeTrade } = useJournal();
   const [range, setRange] = useState<(typeof RANGES)[number]['id']>('all');
   const [metric, setMetric] = useState<'r' | 'pnl'>('r');
   const [by, setBy] = useState<GroupKey>('setup');
@@ -37,8 +37,25 @@ export default function TradesPage() {
   const trades = useMemo(() => {
     const days = RANGES.find((r) => r.id === range)!.days;
     const cutoff = Number.isFinite(days) ? new Date(now - days * 864e5).toISOString() : '';
-    return data.trades.filter((t) => t.closedAt >= cutoff);
+    return closedOnly(data.trades).filter((t) => t.closedAt >= cutoff);
   }, [data.trades, range, now]);
+  const openPositions = useMemo(() => data.trades.filter(isOpen), [data.trades]);
+  const rangeLabel = range === 'all' ? 'all time' : `last ${range} days`;
+  const byLabel = by === 'symbol' ? 'pair' : by;
+
+  // "/trades?trade=<id>" opens that trade — Ask links its supporting trades here.
+  useEffect(() => {
+    if (!ready) return;
+    const id = new URLSearchParams(window.location.search).get('trade');
+    const t = id && data.trades.find((x) => x.id === id);
+    if (t) {
+      // Opening the linked trade once data has loaded.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpen(t);
+      setView('list');
+      window.history.replaceState(null, '', '/trades');
+    }
+  }, [ready, data.trades]);
 
   const stats = useMemo(() => computeStats(trades), [trades]);
   const groups = useMemo(() => groupStats(trades, by), [trades, by]);
@@ -67,7 +84,13 @@ export default function TradesPage() {
         </button>
       </header>
 
-      {ready && data.trades.length === 0 ? (
+      {!ready ? (
+        <div className="stack" aria-hidden>
+          <div className="skeleton" style={{ height: 44 }} />
+          <div className="stats">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 76 }} />)}</div>
+          <div className="skeleton" style={{ height: 240 }} />
+        </div>
+      ) : data.trades.length === 0 ? (
         <div className="card empty">
           <h3>No trades yet</h3>
           <p>Import your platform’s history file — live sync is on the way.</p>
@@ -119,13 +142,13 @@ export default function TradesPage() {
           </div>
 
           <Reveal className="section">
-            <h2 className="section-title" style={{ marginBottom: 12 }}>Equity in {metric === 'r' ? 'R' : 'dollars'}</h2>
+            <h2 className="section-title" style={{ marginBottom: 12 }}>How your {metric === 'r' ? 'R' : 'account'} has grown, {rangeLabel}</h2>
             <div className="card"><EquityCurve trades={trades} metric={metric} /></div>
           </Reveal>
 
           <Reveal className="section">
             <div className="section-head">
-              <h2 className="section-title">Where it comes from</h2>
+              <h2 className="section-title">Where your {metric === 'r' ? 'R' : 'money'} comes from, by {byLabel}</h2>
               <div className="seg" role="group" aria-label="Group by">
                 {(['setup', 'symbol', 'session'] as const).map((k) => (
                   <button key={k} aria-pressed={by === k} onClick={() => setBy(k)}>
@@ -167,6 +190,19 @@ export default function TradesPage() {
           ) : (
           <motion.div key="list" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.25 }}>
 
+          {openPositions.length > 0 && (
+            <section className="section" style={{ marginTop: 0 }}>
+              <div className="section-head">
+                <h2 className="section-title">Open now</h2>
+                <span className="faint num" style={{ fontSize: 12 }}>{openPositions.length}</span>
+              </div>
+              <div className="list">
+                {openPositions.map((t) => (
+                  <TradeItem key={t.id} trade={t} noteCount={notesByTrade.get(t.id)} onClick={() => setOpen(t)} />
+                ))}
+              </div>
+            </section>
+          )}
           <section className="section" style={{ marginTop: 0 }}>
             <div className="section-head">
               <h2 className="section-title">All trades</h2>
@@ -199,8 +235,33 @@ export default function TradesPage() {
         </>
       )}
 
-      <Sheet open={!!open} onClose={() => setOpen(null)} title={open ? `${open.symbol} ${open.side}` : ''}>
-        {open && (
+      <Sheet open={!!open} onClose={() => setOpen(null)} title={open ? `${open.symbol} ${open.side}${isOpen(open) ? ' · open' : ''}` : ''}>
+        {open && isOpen(open) && (
+          <div className="stack">
+            <div className="stats" style={{ gridTemplateColumns: 'repeat(2, minmax(0,1fr))' }}>
+              <div className="stat"><div className="stat-label">Entry</div><div className="stat-value num">{open.entry || '—'}</div></div>
+              <div className="stat"><div className="stat-label">Stop</div><div className="stat-value num">{open.stop ?? '—'}</div></div>
+              <div className="stat"><div className="stat-label">Opened</div><div className="stat-value" style={{ fontSize: 15 }}>{fmt.relative(open.openedAt, now)}</div></div>
+              <div className="stat"><div className="stat-label">Setup</div><div className="stat-value" style={{ fontSize: 15 }}>{open.setup ?? '—'}</div></div>
+            </div>
+            {openNotes.length > 0 && (
+              <div className="list">
+                {openNotes.map((e) => <EntryItem key={e.id} entry={e} onDelete={() => deleteEntry(e.id)} />)}
+              </div>
+            )}
+            <Composer trade={open} placeholder={openNotes.length ? 'Add to the plan…' : 'What’s the plan? Why this trade, where you’re wrong…'} />
+            {open.source !== 'sync' && (
+              <CloseTrade
+                trade={open}
+                onClose={(c) => {
+                  closeTrade(open.id, c);
+                  setOpen(null);
+                }}
+              />
+            )}
+          </div>
+        )}
+        {open && !isOpen(open) && (
           <div className="stack">
             <div className="stats" style={{ gridTemplateColumns: 'repeat(2, minmax(0,1fr))' }}>
               <div className="stat"><div className="stat-label">Result</div><div className={`stat-value ${(open.r ?? open.pnl) >= 0 ? 'pos' : 'neg'}`}>{fmt.r(open.r)}</div></div>
@@ -221,7 +282,7 @@ export default function TradesPage() {
             <Composer trade={open} placeholder={openNotes.length ? 'Add to the story…' : 'What happened?'} />
             <button
               className="btn btn-ghost btn-sm"
-              style={{ justifySelf: 'start', color: 'var(--neg)' }}
+              style={{ justifySelf: 'start', color: 'var(--neg-text)' }}
               onClick={() => {
                 if (confirm('Remove this trade? Its notes are kept.')) {
                   deleteTrade(open.id);
@@ -248,5 +309,35 @@ export default function TradesPage() {
         />
       </Sheet>
     </div>
+  );
+}
+
+/** Closing a manual position: exit price and result. R comes from the stop, never guessed. */
+function CloseTrade({ trade, onClose }: { trade: Trade; onClose: (c: { exit: number; pnl: number; closedAt: string }) => void }) {
+  const [exit, setExit] = useState('');
+  const [pnl, setPnl] = useState('');
+  const toNum = (v: string) => {
+    const n = Number(v.trim().replace('−', '-').replace(/,(?=\d{1,2}$)/, '.').replace(/,/g, ''));
+    return v.trim() && Number.isFinite(n) ? n : null;
+  };
+  const x = toNum(exit);
+  const p = toNum(pnl);
+  const r = x != null ? rFromPrices(trade.side, trade.entry, trade.stop, x) : null;
+  return (
+    <form
+      className="card card-quiet stack"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (x != null && p != null) onClose({ exit: x, pnl: p, closedAt: new Date().toISOString() });
+      }}
+    >
+      <div className="label">Closed this trade?</div>
+      <div className="grid-2">
+        <input className="input num" inputMode="text" placeholder="Exit price" value={exit} onChange={(e) => setExit(e.target.value)} aria-label="Exit price" />
+        <input className="input num" inputMode="text" placeholder="P&L, e.g. -80" value={pnl} onChange={(e) => setPnl(e.target.value)} aria-label="Profit or loss" />
+      </div>
+      {r != null && <p className="faint" style={{ fontSize: 13 }}>That’s <span className={`num ${r >= 0 ? 'pos' : 'neg'}`}>{fmt.r(r)}</span> against your stop.</p>}
+      <button className="btn btn-primary btn-block" disabled={x == null || p == null}>Mark as closed</button>
+    </form>
   );
 }

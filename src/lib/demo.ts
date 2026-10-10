@@ -109,6 +109,18 @@ export function buildDemo(now = new Date()): JournalData {
       // Leave the most recent trade un-journaled so the post-close prompt shows.
       if (d === 0 || rand() < 0.3) continue;
       const text = pick(r > 0 ? WIN_NOTES : LOSS_NOTES).replace('{setup}', setup);
+      // Some trades got a plan written as they opened — before the result could colour it.
+      if (rand() < 0.35) {
+        entries.push({
+          id: `demo_p${n}`,
+          kind: 'plan',
+          text: `${setup} at the value area. Stop beyond the last touch, target the prior high. Only if the level holds on the 1H.`,
+          tradeId: id,
+          structured: { symbol, side, setup, tags: [], fields: { Timeframe: '1H' } },
+          confidence: 0.9,
+          createdAt: new Date(open.getTime() + 60000).toISOString(),
+        });
+      }
       const tags = DEMO_PLAYBOOK.tags.filter((t) => text.toLowerCase().includes(t.toLowerCase()));
       entries.push({
         id: `demo_e${n}`,
@@ -117,10 +129,39 @@ export function buildDemo(now = new Date()): JournalData {
         tradeId: id,
         structured: { symbol, side, setup, r, tags, fields: { Timeframe: '1H' } },
         confidence: 0.9,
+        // Breaking a rule, entering early or moving the stop means the plan wasn't followed.
+        followedPlan: !/revenge|fomo|early entry|moved stop|forced/i.test(text),
         createdAt: new Date(close.getTime() + 4 * 60000).toISOString(),
       });
     }
   }
+
+  // The most recent closed trade always waits for its note — even at the weekend,
+  // when no trade closed today — so the post-close prompt is visible in the demo.
+  const latest = trades[trades.length - 1];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].tradeId === latest.id && entries[i].kind !== 'plan') entries.splice(i, 1);
+  }
+
+  // One position still open, waiting for its plan.
+  const opened = new Date(now.getTime() - 35 * 60000);
+  trades.push({
+    id: 'demo_open1',
+    symbol: 'GBPUSD',
+    side: 'short',
+    openedAt: opened.toISOString(),
+    closedAt: opened.toISOString(),
+    status: 'open',
+    entry: 1.265,
+    stop: 1.268,
+    exit: 0,
+    size: 0.8,
+    pnl: 0,
+    r: null,
+    setup: '3-touch',
+    session: sessionFor(opened.toISOString()),
+    source: 'demo',
+  });
 
   const extra: [number, Entry['kind'], string, Partial<Entry['structured']>][] = [
     [1, 'missed', 'Saw a 3-touch on GBPUSD at 1.2650, didn’t take it — would’ve been +4R. Hesitated after the morning loss.', { symbol: 'GBPUSD', setup: '3-touch', r: 4 }],
