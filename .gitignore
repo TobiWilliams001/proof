@@ -1,0 +1,23 @@
+# dependencies
+node_modules
+
+# next.js build output
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# env — secrets never leave this machine; .env.example documents the names
+.env*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
