@@ -1,0 +1,95 @@
+.prompts { display: grid; gap: 8px; margin-bottom: 14px; }
+.prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  text-align: left;
+  border-radius: var(--r);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  transition: transform 0.15s var(--ease), background 0.2s;
+}
+.prompt:hover { background: color-mix(in srgb, var(--accent-soft) 100%, var(--accent) 6%); }
+.prompt:active { transform: scale(0.99); }
+.promptDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe { 50% { box-shadow: 0 0 0 7px transparent; } }
+.promptText { flex: 1; font-size: 14.5px; min-width: 0; }
+
+.onboard { padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); }
+.steps { display: grid; gap: 8px; margin-top: 18px; }
+.step {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px;
+  text-align: left;
+  border-radius: var(--r);
+  background: var(--surface-2);
+  transition: background 0.2s, transform 0.15s var(--ease);
+}
+.step:hover { background: var(--surface-3); }
+.step:active { transform: scale(0.99); }
+.step > span:nth-child(2) { display: grid; gap: 2px; font-size: 14.5px; }
+.step > span:nth-child(2) > span { font-size: 13px; }
+.stepIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-1);
+}
+
+.filterBar { display: flex; align-items: center; gap: 8px; }
+
+.day { margin-top: 22px; }
+.dayLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin: 0 4px 10px;
+}
+.daySummary { font-size: 12px; font-weight: 500; color: var(--ink-3); }
+
+.glance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.glanceItem {
+  padding: 12px 14px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.glanceValue { font-size: 19px; font-weight: 500; letter-spacing: -0.02em; margin: 1px 0; }
+
+.tradeFacts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
