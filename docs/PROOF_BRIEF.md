@@ -42,6 +42,61 @@ Three things are broken in existing journals:
 
 ---
 
+## 3b. The quality bar
+
+Proof should be a great product regardless of how many people use it. Scale is not the measure; how it feels to use is.
+
+- **Fewer things, done exceptionally.** The core loop — capture, structure, ask, review — must be excellent before anything is added.
+- **Fast.** Opening the app to a saved note: under 15 seconds. Every screen feels instant, even on a weak connection.
+- **Correct.** Synced trades match the platform exactly. Answers are right and show their sources. Accuracy is measured, not assumed.
+- **Reliable.** Nothing a trader writes is ever lost. Sync failures are visible and recoverable, never silent.
+- **Calm and crafted.** Thoughtful empty states, clear errors, considered copy, smooth on mobile. No clutter, no dark patterns.
+- **Respectful.** Private by default, honest about limits, easy to leave with your data.
+
+### Design and experience standard (the minimum, not the stretch)
+
+Proof should look and feel like a best-in-class 2026 product: modern, clean, sleek, calm. Every screen should communicate one thing clearly.
+
+**Visual system**
+- **Design tokens first:** one source of truth for colour, type, spacing, radius and shadow. No one-off values.
+- **Dark mode by default** (traders live on dark charts), with an equally polished light mode. Both meet WCAG AA contrast.
+- **Restrained palette:** neutral base, one accent colour, and semantic colours for profit/loss that never rely on colour alone (pair with +/−, icons or labels).
+- **Typography:** one clean sans-serif, a clear type scale, generous line height, **tabular numerals** for all prices, P&L and R values.
+- **Space over borders:** structure comes from spacing and hierarchy, not boxes and lines.
+- **Subtle motion:** short, purposeful transitions (state changes, card confirmations). Respect reduced-motion settings.
+
+**Structure and content**
+- **One primary action per screen.** On the home screen, that's the journal box.
+- **Clear hierarchy:** the most important number or insight is the largest thing on the screen.
+- **Plain language everywhere.** No jargon the trader didn't introduce themselves. Copy from `docs/PROOF_COPY.md`.
+- **Numbers formatted for traders:** consistent currency, R with one decimal, signed values (+2.4R / −1.0R), relative and absolute time.
+
+**The conversational interface**
+- The composer sits where the thumb is (bottom on mobile), always one tap away.
+- Structured results appear as a **clean confirm card**, editable inline — never a form.
+- The clarifying question is a single line with tap-to-answer chips.
+- Answers to questions read like a short, clear message with the supporting trades shown as compact, tappable rows.
+
+**Data visualisation**
+- Charts are simple and honest: minimal gridlines, labelled axes, no decorative 3D or gradients that distort.
+- Every chart answers one question, stated in its title ("Your R by setup, last 30 days").
+
+**States and polish**
+- **Thoughtful empty states** that teach the next step ("Connect an account and your trades will appear here").
+- **Skeleton loading,** never blank screens or jumping layouts.
+- **Clear, kind errors** that say what happened and what to do next.
+- Works beautifully on a phone first, then scales up to desktop.
+
+**Performance and accessibility**
+- Fast on a mid-range phone and a weak connection; aim for a strong Lighthouse score on the main screens.
+- Keyboard navigable, screen-reader labelled, visible focus states, touch targets at least 44px.
+
+**Design QA before any feature is done:** check dark and light mode, mobile and desktop, empty/loading/error states, keyboard use, and contrast.
+
+**Quality signals to track from day one:** time to journal a trade, 30-day retention (do people keep journaling?), extraction and answer accuracy from the evals, sync reliability, and what the first users say unprompted.
+
+---
+
 ## 4. The core experience (v1)
 
 ### Onboarding — under 2 minutes
@@ -49,8 +104,13 @@ Three things are broken in existing journals:
 - **Connect a trading account** (read-only). Past trades sync in automatically.
 - Optional: **describe your playbook** in plain words ("I trade 2-touch and 3-touch continuations at value areas on the 1H…"). Proof turns it into setups and tags the trader can edit. Skippable.
 
+### When a trade opens — capture the plan before the outcome
+- When sync detects a newly opened position, Proof prompts: *"GBPUSD short opened. What's the plan?"*
+- The thinking is captured before the result can colour it. Later, plan and outcome sit side by side.
+
 ### After a trade — the key moment
 - When a synced trade closes, Proof gently prompts: *"EURUSD long closed +2.4R. What happened?"*
+- **One-tap congruence:** "Did you follow your plan?" Yes / No — the single most important discipline metric, captured in a second.
 - One text box. The trader **types or dictates** (speech-to-text straight into the box; no separate recording flow).
 - A toggle per note: **Structure it** or **Keep it as written**.
   - *Structure it:* AI maps the note to the trader's own setups, tags and fields, links it to the trade, and shows a confirm card. At most **one** clarifying question, only when it genuinely matters ("Was this your RE or RRE?").
@@ -72,7 +132,9 @@ Plain-language questions, answered from the trader's own data:
 
 Every answer shows the numbers **and the trades behind them**.
 
-### Weekly review
+### Weekly review — the AI speaks first
+When the trader opens Proof at the start of the week, the review is already there before they do anything — specific to *their* data, in plain language. For example: *"Both losses this week were entered before the structure formed — you noted it yourself after each one. Your early entries are trailing your confirmed entries by 2R on average."* Not generic advice: their own data talking back, with the trades and notes behind every claim.
+
 Auto-drafted from the week's data and notes: results, R distribution, rule adherence, missed and invalid trades, recurring themes in the trader's own words. The trader adds one improvement for next week.
 
 ---
@@ -183,6 +245,8 @@ Row-level security on every table. A user can only ever read their own rows.
 - Small, readable modules. Comments explain *why*, not *what*.
 - Secrets only in environment variables; never committed.
 - Before building any feature: restate the user problem it solves and the acceptance criteria, then build.
+- **Reuse before you build.** Most pieces are already solved. Before writing a component, look for a proven open-source project, SDK or API and adapt it to Proof's case. Known references: Deltalytix (Next.js + Supabase journal), Tradepad (MIT, Next.js, MCP), TradeNote (GPL v3), MetaApi SDK and open-source MT4/MT5 sync EAs for live import.
+- **Respect licences.** Prefer MIT/Apache code. Do not copy GPL or AGPL code into Proof (it will be a paid service); study it for ideas only. Confirm a project's LICENSE file before reusing anything.
 
 ---
 
