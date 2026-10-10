@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import { ServiceWorker } from '@/components/ServiceWorker';
@@ -34,6 +35,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <ServiceWorker />
+        {/* Cookieless page-view counts on Vercel; no personal data or journal content. */}
+        <Analytics />
       </body>
     </html>
   );

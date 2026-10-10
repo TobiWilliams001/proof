@@ -65,6 +65,6 @@ describe('eval: ask your journal', () => {
 
   afterAll(() => {
     const pct = (k: 'answer' | 'citations') => Math.round((results.filter((r) => r[k]).length / results.length) * 100);
-    console.log(`\n  Q&A eval — answer accuracy ${pct('answer')}% · citation correctness ${pct('citations')}% (${results.length} questions)\n`);
+    process.stdout.write(`\n  Q&A eval — answer accuracy ${pct('answer')}% · citation correctness ${pct('citations')}% (${results.length} questions)\n`);
   });
 });

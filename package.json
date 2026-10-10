@@ -11,6 +11,7 @@
     "eval": "vitest run evals"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "lucide-react": "^0.474.0",
     "motion": "^12.43.0",
     "next": "16.2.4",
@@ -20,12 +21,12 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "typescript": "^5",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.3"
   }
 }

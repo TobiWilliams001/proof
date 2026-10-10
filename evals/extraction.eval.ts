@@ -79,6 +79,6 @@ describe('eval: note structuring', () => {
   afterAll(() => {
     const parts = (Object.keys(tally) as Field[]).map((k) => `${k} ${Math.round((tally[k][0] / Math.max(1, tally[k][1])) * 100)}%`);
     const [ok, n] = Object.values(tally).reduce(([a, b], [x, y]) => [a + x, b + y], [0, 0]);
-    console.log(`\n  Extraction eval — overall ${Math.round((ok / n) * 100)}% · ${parts.join(' · ')} (${CASES.length} notes)\n`);
+    process.stdout.write(`\n  Extraction eval — overall ${Math.round((ok / n) * 100)}% · ${parts.join(' · ')} (${CASES.length} notes)\n`);
   });
 });
