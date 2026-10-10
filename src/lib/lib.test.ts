@@ -8,6 +8,8 @@ import { computeStats, outcomeOf, rDistribution } from './stats';
 import { migrateLegacy } from './storage';
 import { constrainToPlaybook, detectKind, detectR, detectSymbol, structureNote } from './structure';
 import { sizeCrypto } from './calculator';
+import { buildCoachNote } from './coach';
+import { rFromPrices } from './stats';
 import { listTrades } from './tools';
 import type { Trade } from './types';
 
@@ -207,6 +209,84 @@ describe('review regressions', () => {
     const lastWeek = t({ id: 'lw', closedAt: new Date(2026, 8, 30, 10).toISOString(), r: -1, pnl: -100 });
     const brk = { id: 'b', kind: 'rule_break' as const, text: 'revenge', tradeId: 'lw', createdAt: new Date(2026, 9, 6, 18).toISOString() };
     expect(buildWeeklyReview([thisWeek, lastWeek], [brk], now).adherence).toBe(1);
+  });
+});
+
+describe('plan at open, congruence, and the review speaking first', () => {
+  const now = new Date(2026, 9, 10, 12);
+  const at = (d: number, h = 10) => new Date(2026, 9, d, h).toISOString();
+  const open = t({ id: 'o', status: 'open', openedAt: at(9), closedAt: at(9), entry: 1.265, stop: 1.268, pnl: 0, r: null });
+  const w1 = t({ id: 'w1', closedAt: at(6), r: 2, pnl: 200, setup: '3-touch' });
+  const l1 = t({ id: 'l1', closedAt: at(7), r: -1, pnl: -100, setup: '2-touch' });
+  const l2 = t({ id: 'l2', closedAt: at(8), r: -1, pnl: -100, setup: '2-touch' });
+  const note = (id: string, tradeId: string, text: string, followedPlan?: boolean) => ({
+    id, kind: 'trade_note' as const, text, tradeId, followedPlan, createdAt: at(Number(tradeId === 'w1' ? 6 : tradeId === 'l1' ? 7 : 8), 18),
+  });
+  const entries = [
+    note('n1', 'w1', 'Patient, waited for the touch.', true),
+    { ...note('n2', 'l1', 'Entered early before the structure formed.', false), structured: { tags: ['early entry'], fields: {} } },
+    { ...note('n3', 'l2', 'Early entry again, structure not formed yet.', false) },
+  ];
+
+  it('never counts an open position in stats, answers or reviews', () => {
+    expect(computeStats([open, w1]).count).toBe(1);
+    expect(listTrades({ trades: [open, w1], entries: [] }).map((x) => x.id)).toEqual(['w1']);
+    expect(buildWeeklyReview([open, w1], [], now).stats.count).toBe(1);
+  });
+
+  it('treats a note on an open position as its plan', () => {
+    expect(structureNote('3-touch at value, stop above the high', DEMO_PLAYBOOK, open).kind).toBe('plan');
+  });
+
+  it('works out R from the stop, and refuses to guess without one', () => {
+    expect(rFromPrices('short', 1.265, 1.268, 1.259)).toBe(2);
+    expect(rFromPrices('long', 100, 95, 97.5)).toBe(-0.5);
+    expect(rFromPrices('long', 100, undefined, 110)).toBeNull();
+    expect(rFromPrices('long', 100, 105, 110)).toBeNull();
+  });
+
+  it('asks the clarifying question in the trader’s own words', () => {
+    expect(structureNote('RE or RRE on EURUSD, +2R', DEMO_PLAYBOOK).clarify?.question).toBe('Was this your RE or RRE?');
+  });
+
+  it('measures weekly adherence from the one-tap answers', () => {
+    const r = buildWeeklyReview([w1, l1, l2], entries, now);
+    expect(r.adherenceSource).toBe('answers');
+    expect(r.adherence).toBeCloseTo(1 / 3);
+  });
+
+  it('answers "how do I do when I follow my plan?" from the answers', () => {
+    const a = answerQuestion('How do I do when I follow my plan?', { trades: [w1, l1, l2], entries }, DEMO_PLAYBOOK, now);
+    expect(a.text).toContain('followed your plan (1 trade)');
+    expect(a.text).toContain('(2 trades)');
+    expect(a.tradeIds.sort()).toEqual(['l1', 'l2', 'w1']);
+  });
+
+  it('does not call a word a loss pattern when wins say it too', () => {
+    const w2 = t({ id: 'w2', closedAt: at(6, 11), r: 1.5, pnl: 150 });
+    const clean = [
+      { id: 'c1', kind: 'trade_note' as const, text: 'Clean setup, worked well.', tradeId: 'w1', createdAt: at(6, 18) },
+      { id: 'c2', kind: 'trade_note' as const, text: 'Clean entry again.', tradeId: 'w2', createdAt: at(6, 19) },
+      { id: 'c3', kind: 'trade_note' as const, text: 'Clean, by the rules, just lost.', tradeId: 'l1', createdAt: at(7, 18) },
+      { id: 'c4', kind: 'trade_note' as const, text: 'Clean setup but stopped.', tradeId: 'l2', createdAt: at(8, 18) },
+    ];
+    const lines = buildCoachNote([w1, w2, l1, l2], clean, DEMO_PLAYBOOK, now);
+    expect(lines.find((l) => l.kind === 'pattern')).toBeUndefined();
+  });
+
+  it('opens the review with facts that each carry their sources, and one suggestion at most', () => {
+    const lines = buildCoachNote([open, w1, l1, l2], entries, DEMO_PLAYBOOK, now);
+    expect(lines[0].text).toBe('This week you took 3 trades — 1 won, 2 lost, and 1 position still open. You finished flat.');
+    const pattern = lines.find((l) => l.kind === 'pattern')!;
+    expect(pattern.text).toBe('Both losses were tagged “early entry” — you noted it yourself after each one.');
+    expect(pattern.tradeIds.sort()).toEqual(['l1', 'l2']);
+    expect(pattern.entryIds.sort()).toEqual(['n2', 'n3']);
+    const discipline = lines.find((l) => l.kind === 'discipline')!;
+    expect(discipline.text).toContain('You followed your plan on 1 of 3 trades.');
+    expect(lines.filter((l) => l.kind === 'suggestion').length).toBeLessThanOrEqual(1);
+    for (const l of lines.filter((x) => x.kind !== 'summary' && x.kind !== 'suggestion')) {
+      expect(l.tradeIds.length + l.entryIds.length).toBeGreaterThan(0);
+    }
   });
 });
 
