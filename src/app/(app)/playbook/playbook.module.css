@@ -1,0 +1,65 @@
+.describe {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-2);
+}
+.describe:focus-within { border-color: var(--accent-line); box-shadow: var(--shadow-2), 0 0 0 5px var(--accent-soft); }
+.describeLabel { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--accent); }
+.describeBox {
+  border: 0;
+  outline: 0;
+  resize: vertical;
+  background: transparent;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 1.4;
+  min-height: 90px;
+}
+.describeBox::placeholder { color: var(--ink-3); }
+.msg { font-size: 13px; color: var(--ink-2); flex: 1; }
+
+.setup { display: grid; gap: 6px; padding: 14px 16px; }
+.name {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 4px 0;
+  border-bottom: 1px dashed transparent;
+}
+.name:focus { border-bottom-color: var(--accent-line); }
+.descInput {
+  border: 0;
+  outline: 0;
+  resize: vertical;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 14px;
+  field-sizing: content;
+}
+.aliases { display: flex; align-items: center; gap: 8px; font-size: 13px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.aliases input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14px; }
+
+.tagForm {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 4px 0 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-2);
+}
+.tagForm input { width: 84px; border: 0; outline: 0; background: transparent; font-size: 13px; }
+.tagForm button { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--ink-2); }
+.tagForm button:disabled { opacity: 0.4; }
+
+.field { gap: 10px; }
+.fieldName { width: 34%; min-width: 0; border: 0; outline: 0; background: transparent; font-weight: 550; font-size: 14.5px; }
+.fieldOpts { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink-2); font-size: 14px; }
