@@ -10,18 +10,17 @@ function apply(choice: Choice) {
   if (choice === 'system') delete root.dataset.theme;
   else root.dataset.theme = choice;
   try {
-    if (choice === 'system') localStorage.removeItem('proof.theme');
-    else localStorage.setItem('proof.theme', choice);
+    localStorage.setItem('proof.theme', choice);
   } catch {}
 }
 
 export function useThemeChoice(): [Choice, (c: Choice) => void] {
-  const [choice, setChoice] = useState<Choice>('system');
+  const [choice, setChoice] = useState<Choice>('dark');
   useEffect(() => {
     const t = document.documentElement.dataset.theme;
     // Syncing from the DOM attribute the pre-paint script set.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (t === 'light' || t === 'dark') setChoice(t);
+    setChoice(t === 'light' || t === 'dark' ? t : 'system');
   }, []);
   return [choice, (c) => (apply(c), setChoice(c))];
 }
@@ -29,9 +28,9 @@ export function useThemeChoice(): [Choice, (c: Choice) => void] {
 export function ThemeSwitch() {
   const [choice, set] = useThemeChoice();
   const opts: [Choice, React.ReactNode, string][] = [
-    ['system', <Monitor key="s" size={15} />, 'System'],
-    ['light', <Sun key="l" size={15} />, 'Light'],
     ['dark', <Moon key="d" size={15} />, 'Dark'],
+    ['light', <Sun key="l" size={15} />, 'Light'],
+    ['system', <Monitor key="s" size={15} />, 'Match device'],
   ];
   return (
     <div className="seg" role="group" aria-label="Theme">

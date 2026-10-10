@@ -10,9 +10,9 @@ import type { CustomField, Playbook, PlaybookSetup } from '@/lib/types';
 import s from './playbook.module.css';
 
 const AI_ERRORS: Record<string, string> = {
-  not_configured: 'Playbook import needs an AI key on the server (GEMINI_API_KEY). You can add setups by hand below.',
-  rate_limited: 'The AI is busy right now. Try again in a minute, or add setups by hand.',
-  offline: 'You seem to be offline. Add setups by hand, or try again later.',
+  not_configured: 'Turning a description into setups isn’t available right now. You can add them by hand below — it only takes a minute.',
+  rate_limited: 'That’s taking longer than usual. Try again in a minute, or add setups by hand below.',
+  offline: 'You seem to be offline. Add setups by hand below, or try again when you’re connected.',
 };
 
 export default function PlaybookPage() {

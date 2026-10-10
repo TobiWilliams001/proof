@@ -14,7 +14,7 @@ export function Logo({ size = 26, withWord = true }: { size?: number; withWord?:
         <circle cx="44" cy="46" r="3.5" fill="var(--accent)" />
       </svg>
       {withWord && (
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: size * 0.95, letterSpacing: '-0.02em', lineHeight: 1 }}>
+        <span style={{ fontWeight: 650, fontSize: size * 0.78, letterSpacing: '-0.035em', lineHeight: 1 }}>
           Proof
         </span>
       )}

@@ -1,17 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import { ServiceWorker } from '@/components/ServiceWorker';
 import './globals.css';
 
 const sans = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' });
-const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono', display: 'swap' });
-const serif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: '400',
-  style: ['normal', 'italic'],
-  variable: '--font-instrument',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: { default: 'Proof — the trading journal you’ll actually keep', template: '%s · Proof' },
@@ -26,18 +18,16 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f6f5f1' },
-    { media: '(prefers-color-scheme: dark)', color: '#0c0d0f' },
-  ],
+  themeColor: '#0c0d0f',
 };
 
-// Runs before first paint so a saved theme never flashes the wrong colours.
-const themeScript = `try{var t=localStorage.getItem('proof.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}`;
+// Runs before first paint so the theme never flashes. Dark is the default
+// (traders live on dark charts); "system" follows the device.
+const themeScript = `try{var t=localStorage.getItem('proof.theme');if(t!=='system')document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable}`} suppressHydrationWarning>
+    <html lang="en" className={sans.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

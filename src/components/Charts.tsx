@@ -77,7 +77,7 @@ export function EquityCurve({ trades, metric = 'r' }: { trades: Trade[]; metric?
             width={44}
             axisLine={false}
             tickLine={false}
-            tick={{ fill: 'var(--ink-3)', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: 'var(--ink-3)', fontSize: 11, fontFamily: 'var(--font-sans)' }}
             tickFormatter={(v: number) => (metric === 'r' ? `${v}R` : `$${Math.round(v)}`)}
           />
           <Tooltip

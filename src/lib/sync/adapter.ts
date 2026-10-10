@@ -25,8 +25,8 @@ export interface PlatformInfo {
 }
 
 export const PLATFORMS: PlatformInfo[] = [
-  { id: 'ctrader', name: 'cTrader', via: 'Official Open API', credential: 'OAuth sign-in', status: 'planned' },
-  { id: 'mt5', name: 'MetaTrader 4 / 5', via: 'Read-only sync service', credential: 'Investor (read-only) password', status: 'planned' },
-  { id: 'bybit', name: 'Bybit', via: 'Official API', credential: 'Read-only API key', status: 'planned' },
-  { id: 'binance', name: 'Binance', via: 'Official API', credential: 'Read-only API key', status: 'planned' },
+  { id: 'ctrader', name: 'cTrader', via: 'Sign in with cTrader', credential: 'Read-only', status: 'planned' },
+  { id: 'mt5', name: 'MetaTrader 4 / 5', via: 'Your investor password', credential: 'Read-only', status: 'planned' },
+  { id: 'bybit', name: 'Bybit', via: 'A read-only API key from Bybit', credential: 'Read-only', status: 'planned' },
+  { id: 'binance', name: 'Binance', via: 'A read-only API key from Binance', credential: 'Read-only', status: 'planned' },
 ];

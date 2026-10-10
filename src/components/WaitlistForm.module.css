@@ -41,7 +41,7 @@
 
 .note { font-size: 13.5px; color: var(--ink-2); margin-top: 10px; }
 .note a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.done { display: inline-flex; align-items: center; gap: 8px; font-weight: 550; color: var(--pos); }
+.done { display: inline-flex; align-items: center; gap: 8px; font-weight: 550; color: var(--pos-text); }
 
 @media (min-width: 560px) {
   .form {

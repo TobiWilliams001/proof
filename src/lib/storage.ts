@@ -7,7 +7,8 @@ import type { Entry, JournalData, Trade } from './types';
  */
 export interface StorageProvider {
   load(): Promise<JournalData>;
-  save(data: JournalData): Promise<void>;
+  /** Resolves false when the write failed, so the UI can say so. */
+  save(data: JournalData): Promise<boolean>;
   clear(): Promise<void>;
 }
 
@@ -83,8 +84,10 @@ export const localProvider: StorageProvider = {
   async save(data) {
     try {
       localStorage.setItem(KEY, JSON.stringify(data));
+      return true;
     } catch {
-      // Quota exceeded / private mode: keep working in memory.
+      // Quota exceeded / private mode: keep working in memory, and tell the trader.
+      return false;
     }
   },
   async clear() {

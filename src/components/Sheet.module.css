@@ -27,7 +27,7 @@
 
 .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--surface-3); margin: 0 auto 10px; }
 .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.title { font-family: var(--font-serif); font-weight: 400; font-size: 26px; letter-spacing: -0.01em; }
+.title { font-weight: var(--weight-display); font-size: var(--text-xl); letter-spacing: var(--tracking-display); }
 
 @keyframes up { from { transform: translateY(40px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }

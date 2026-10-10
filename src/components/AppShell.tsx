@@ -24,7 +24,7 @@ const SECONDARY = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { data, ready } = useJournal();
+  const { data, ready, saveFailed } = useJournal();
   const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
   const moreActive = SECONDARY.some((i) => isActive(i.href));
 
@@ -70,6 +70,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className={s.main}>
+        {saveFailed && (
+          <div className={s.saveBanner} role="alert">
+            <strong>Your latest changes couldn’t be saved on this device.</strong>{' '}
+            Your browser may be out of space or in private mode. Export your journal from{' '}
+            <Link href="/settings">Settings</Link> so nothing is lost.
+          </div>
+        )}
         {/* Keyed on the route so each screen settles in instead of snapping. */}
         <motion.div key={path} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
           {children}

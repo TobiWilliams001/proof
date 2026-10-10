@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { CsvImport } from '@/components/CsvImport';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Reveal } from '@/components/motion';
+import { typicalJournalTime } from '@/lib/metrics';
 import { useJournal } from '@/lib/store';
+import { useMounted } from '@/lib/useMounted';
 import { PLATFORMS } from '@/lib/sync/adapter';
 
 function download(name: string, body: string, type: string) {
@@ -19,6 +21,8 @@ function download(name: string, body: string, type: string) {
 export default function SettingsPage() {
   const { data, addTrades, loadDemo, clearAll } = useJournal();
   const stamp = new Date().toISOString().slice(0, 10);
+  const mounted = useMounted();
+  const pace = mounted ? typicalJournalTime() : null;
 
   const exportCsv = () => {
     const head = 'closed_at,symbol,side,entry,exit,size,pnl,r,setup,notes';
@@ -48,7 +52,7 @@ export default function SettingsPage() {
             <div key={p.id} className="list-item">
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'block', fontWeight: 550 }}>{p.name}</span>
-                <span className="faint" style={{ fontSize: 12.5 }}>{p.via} · {p.credential}</span>
+                <span className="faint" style={{ fontSize: 12.5 }}>{p.via}</span>
               </span>
               <span className="chip chip-sm chip-outline">Coming soon</span>
             </div>
@@ -82,6 +86,12 @@ export default function SettingsPage() {
       </Reveal>
 
       <Reveal className="section">
+        {pace && (
+          <p className="card" style={{ marginBottom: 16, fontSize: 14.5 }}>
+            You usually journal a note in <strong className="num">{pace.seconds} seconds</strong>
+            <span className="faint"> · last {pace.samples} notes</span>
+          </p>
+        )}
         <h2 className="section-title" style={{ marginBottom: 12 }}>Your data</h2>
         <div className="list">
           <button className="list-item" onClick={() => download(`proof-journal-${stamp}.json`, JSON.stringify(data, null, 2), 'application/json')}>
@@ -101,7 +111,7 @@ export default function SettingsPage() {
           </button>
           <button
             className="list-item"
-            style={{ color: 'var(--neg)' }}
+            style={{ color: 'var(--neg-text)' }}
             onClick={async () => {
               if (confirm('Delete every trade, note and setup on this device? This can’t be undone.')) await clearAll();
             }}

@@ -13,7 +13,7 @@
   --surface-3: #e7e4dc;
   --ink: #17181a;
   --ink-2: #565961;
-  --ink-3: #8d9098;
+  --ink-3: #676a72;
   --line: rgba(23, 24, 26, 0.08);
   --line-2: rgba(23, 24, 26, 0.14);
 
@@ -26,13 +26,16 @@
   --pos-soft: rgba(0, 130, 111, 0.1);
   --neg: #cf4a24;
   --neg-soft: rgba(207, 74, 36, 0.09);
-  --warn: #a8701a;
+  /* Text versions of win/loss: deeper than the chart marks so small text meets AA. */
+  --pos-text: #00705f;
+  --neg-text: #b33c1a;
+  --warn: #86590f;
   --warn-soft: rgba(168, 112, 26, 0.1);
 
   --k-trade: #5146e5;
-  --k-missed: #a8701a;
-  --k-rule: #cf4a24;
-  --k-plan: #1f7a8c;
+  --k-missed: #86590f;
+  --k-rule: #b33c1a;
+  --k-plan: #17677a;
   --k-reflect: #7a5bb5;
 
   --shadow-1: 0 1px 2px rgba(23, 24, 26, 0.04), 0 1px 1px rgba(23, 24, 26, 0.03);
@@ -42,8 +45,19 @@
   --glass-strong: rgba(250, 249, 246, 0.94);
 
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Type scale — one family, hierarchy from size and weight. */
+  --text-xs: 12px;
+  --text-sm: 13.5px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 21px;
+  --text-2xl: 26px;
+  --text-3xl: clamp(30px, 8vw, 40px);
+  --weight-medium: 500;
+  --weight-strong: 600;
+  --weight-display: 650;
+  --tracking-display: -0.032em;
 
   --r-sm: 10px;
   --r: 16px;
@@ -65,7 +79,7 @@
     --surface-3: #26282e;
     --ink: #ecedef;
     --ink-2: #a3a6ae;
-    --ink-3: #6c6f78;
+    --ink-3: #868992;
     --line: rgba(255, 255, 255, 0.07);
     --line-2: rgba(255, 255, 255, 0.13);
     --accent: #8f88ff;
@@ -76,6 +90,8 @@
     --pos-soft: rgba(31, 158, 143, 0.12);
     --neg: #e5583c;
     --neg-soft: rgba(229, 88, 60, 0.12);
+    --pos-text: #1f9e8f;
+    --neg-text: #e5583c;
     --warn: #e2a64a;
     --warn-soft: rgba(226, 166, 74, 0.12);
     --k-trade: #8f88ff;
@@ -100,7 +116,7 @@
   --surface-3: #26282e;
   --ink: #ecedef;
   --ink-2: #a3a6ae;
-  --ink-3: #6c6f78;
+  --ink-3: #868992;
   --line: rgba(255, 255, 255, 0.07);
   --line-2: rgba(255, 255, 255, 0.13);
   --accent: #8f88ff;
@@ -111,6 +127,8 @@
   --pos-soft: rgba(31, 158, 143, 0.12);
   --neg: #e5583c;
   --neg-soft: rgba(229, 88, 60, 0.12);
+  --pos-text: #1f9e8f;
+  --neg-text: #e5583c;
   --warn: #e2a64a;
   --warn-soft: rgba(226, 166, 74, 0.12);
   --k-trade: #8f88ff;
@@ -157,12 +175,13 @@ img, svg { display: block; }
 
 h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 
-.serif { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.01em; }
-.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.display { font-weight: var(--weight-display); letter-spacing: var(--tracking-display); line-height: 1.12; }
+/* Prices, P&L and R line up in columns: tabular figures, same family. */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; letter-spacing: -0.01em; }
 .muted { color: var(--ink-2); }
 .faint { color: var(--ink-3); }
-.pos { color: var(--pos); }
-.neg { color: var(--neg); }
+.pos { color: var(--pos-text); }
+.neg { color: var(--neg-text); }
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
@@ -185,11 +204,11 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
   letter-spacing: 0.02em;
 }
 .page-title {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-size: clamp(34px, 9vw, 46px);
-  letter-spacing: -0.02em;
-  line-height: 1.02;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-display);
+  font-size: var(--text-3xl);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.08;
   margin-top: 6px;
 }
 .page-sub { color: var(--ink-2); margin-top: 8px; max-width: 52ch; }
@@ -213,7 +232,6 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 /* ── Surfaces ─────────────────────────────────────────────── */
 .card {
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-1);
   padding: 18px;
@@ -272,8 +290,8 @@ button.chip:active { transform: scale(0.96); }
   border-color: var(--accent-line);
 }
 .chip-sm { height: 24px; padding: 0 9px; font-size: 12px; }
-.chip-pos { background: var(--pos-soft); color: var(--pos); }
-.chip-neg { background: var(--neg-soft); color: var(--neg); }
+.chip-pos { background: var(--pos-soft); color: var(--pos-text); }
+.chip-neg { background: var(--neg-soft); color: var(--neg-text); }
 .chip-outline { background: transparent; border-color: var(--line-2); }
 
 .scroll-x {
@@ -364,18 +382,13 @@ button.chip:active { transform: scale(0.96); }
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  border: 1px solid var(--line);
+  gap: 8px;
 }
-.stat { background: var(--surface); padding: 14px 16px; min-width: 0; }
+.stat { background: var(--surface); padding: 14px 16px; min-width: 0; border-radius: var(--r); box-shadow: var(--shadow-1); }
 .stat-label { font-size: 12px; color: var(--ink-3); font-weight: 500; }
 .stat-value {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 22px; font-weight: 500;
+  font-size: 22px; font-weight: var(--weight-strong);
   letter-spacing: -0.03em;
   margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -385,11 +398,22 @@ button.chip:active { transform: scale(0.96); }
 /* ── Lists ────────────────────────────────────────────────── */
 .list {
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
   overflow: hidden;
 }
-.list > * + * { border-top: 1px solid var(--line); }
+/* Inset hairlines group rows without boxing them in. */
+.list > * { position: relative; }
+.list > * + *::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 1px;
+  background: var(--line);
+  pointer-events: none;
+}
 .list-item {
   display: flex; align-items: center; gap: 12px;
   width: 100%;
@@ -405,7 +429,7 @@ button.list-item:hover, a.list-item:hover { background: var(--surface-2); }
   padding: 40px 20px;
   color: var(--ink-2);
 }
-.empty h3 { font-family: var(--font-serif); font-weight: 400; font-size: 26px; color: var(--ink); margin-bottom: 6px; }
+.empty h3 { font-weight: var(--weight-display); letter-spacing: var(--tracking-display); font-size: var(--text-xl); color: var(--ink); margin-bottom: 6px; }
 
 /* ── Motion ───────────────────────────────────────────────── */
 .rise { animation: rise 0.5s var(--ease) both; }
@@ -436,4 +460,20 @@ button.list-item:hover, a.list-item:hover { background: var(--surface-2); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .theme-sun { display: none; }
   :root:not([data-theme='light']) .theme-moon { display: block; }
+}
+
+/* Touch screens: every control gets at least a 44px target (brief: accessibility). */
+@media (pointer: coarse) {
+  .btn-sm { --h: 44px; }
+  .btn-icon.btn-sm { --h: 44px; }
+  .seg button { height: 40px; min-width: 44px; }
+  .chip { height: 36px; }
+  .chip-sm { height: 32px; }
+  button.chip, .seg button, .btn-sm { position: relative; }
+  /* Extend the hit area beyond the visual edge where the visual must stay small. */
+  button.chip::after, a.chip::after {
+    content: '';
+    position: absolute;
+    inset: -6px -2px;
+  }
 }

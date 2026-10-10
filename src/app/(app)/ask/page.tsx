@@ -1,7 +1,8 @@
 'use client';
 
-import { ArrowUp, ArrowUpRight, ChevronDown, Info, Mic, Square } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, ChevronDown, Mic, Square } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EntryItem, TradeItem } from '@/components/Items';
 import { SPRING, stagger } from '@/components/motion';
@@ -14,7 +15,7 @@ import s from './ask.module.css';
 const SUGGESTED: { group: string; qs: string[] }[] = [
   { group: 'Performance', qs: ['What’s my win rate on my best setup?', 'Which setup makes me the most R?', 'What’s my P&L this month?'] },
   { group: 'Leaks', qs: ['Which pair costs me the most?', 'What’s my average R on shorts?'] },
-  { group: 'Behaviour', qs: ['How do I perform when I log “tired”?', 'What do I keep saying about early entries?'] },
+  { group: 'Discipline', qs: ['How do I do when I follow my plan?', 'How do I perform when I log “tired”?', 'What do I keep saying about early entries?'] },
 ];
 
 interface Turn {
@@ -116,7 +117,6 @@ export default function AskPage() {
 function TurnView({ turn }: { turn: Turn }) {
   const { data } = useJournal();
   const [showTrades, setShowTrades] = useState(false);
-  const [showHow, setShowHow] = useState(false);
   const { a } = turn;
   const trades = useMemo(() => data.trades.filter((t) => a.tradeIds.includes(t.id)), [data.trades, a.tradeIds]);
   const entries = useMemo(() => data.entries.filter((e) => a.entryIds.includes(e.id)), [data.entries, a.entryIds]);
@@ -149,53 +149,28 @@ function TurnView({ turn }: { turn: Turn }) {
           </div>
         )}
 
-        <div className={s.foot}>
-          {trades.length > 0 && (
-            <button className={s.disclose} aria-expanded={showTrades} onClick={() => setShowTrades(!showTrades)}>
+        {trades.length > 0 && (
+          <div className={s.support}>
+            <div className={s.supportHead}>
               Based on {trades.length} trade{trades.length === 1 ? '' : 's'}
-              <ChevronDown size={14} className={s.chev} />
-            </button>
-          )}
-          <button className={s.disclose} aria-expanded={showHow} onClick={() => setShowHow(!showHow)}>
-            <Info size={13} /> How this was computed
-          </button>
-        </div>
-
-        <AnimatePresence initial={false}>
-          {showTrades && (
-            <Collapse key="trades">
-              <div className="list" style={{ marginTop: 10 }}>
-                {trades.slice(0, 30).map((t) => (
-                  <TradeItem key={t.id} trade={t} />
-                ))}
-                {trades.length > 30 && <div className="list-item faint" style={{ fontSize: 13 }}>+ {trades.length - 30} more</div>}
-              </div>
-            </Collapse>
-          )}
-          {showHow && (
-            <Collapse key="how">
-              <pre className={s.how}>
-                {a.toolCalls.map((c) => `${c.tool}(${JSON.stringify(c.args)})`).join('\n')}
-                {'\n\n'}Scope: {a.scope}
-              </pre>
-            </Collapse>
-          )}
-        </AnimatePresence>
+            </div>
+            <div className="list">
+              {trades.slice(0, showTrades ? 30 : 3).map((t) => (
+                <Link key={t.id} href={`/trades?trade=${t.id}`} className={s.supportRow}>
+                  <TradeItem trade={t} />
+                </Link>
+              ))}
+            </div>
+            {trades.length > 3 && (
+              <button className={s.disclose} aria-expanded={showTrades} onClick={() => setShowTrades(!showTrades)}>
+                {showTrades ? 'Show fewer' : `See all ${Math.min(trades.length, 30)}`}
+                <ChevronDown size={14} className={s.chev} />
+              </button>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );
 }
 
-function Collapse({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-      style={{ overflow: 'hidden' }}
-    >
-      {children}
-    </motion.div>
-  );
-}

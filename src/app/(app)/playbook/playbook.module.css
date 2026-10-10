@@ -4,7 +4,6 @@
   padding: 16px;
   border-radius: var(--r-xl);
   background: var(--surface);
-  border: 1px solid var(--line);
   box-shadow: var(--shadow-2);
 }
 .describe:focus-within { border-color: var(--accent-line); box-shadow: var(--shadow-2), 0 0 0 5px var(--accent-soft); }
@@ -14,9 +13,8 @@
   outline: 0;
   resize: vertical;
   background: transparent;
-  font-family: var(--font-serif);
-  font-size: 20px;
-  line-height: 1.4;
+  font-size: var(--text-lg);
+  line-height: 1.5;
   min-height: 90px;
 }
 .describeBox::placeholder { color: var(--ink-3); }

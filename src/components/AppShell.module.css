@@ -79,7 +79,6 @@
     display: flex;
     flex-direction: column;
     padding: 22px 14px 18px;
-    border-right: 1px solid var(--line);
   }
   .brand { padding: 4px 10px 26px; }
   .railNav { display: grid; gap: 2px; }
@@ -100,10 +99,22 @@
   .railItem[aria-current='page'] { color: var(--ink); }
   .railItem[aria-current='page']:hover { background: transparent; }
   .railItem > svg, .label { position: relative; z-index: 1; }
-  .railPill { position: absolute; inset: 0; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-1); border: 1px solid var(--line); }
+  .railPill { position: absolute; inset: 0; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-1); }
   .railSep { height: 1px; background: var(--line); margin: 12px 10px; }
   .railFoot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
 }
 
 .syncDot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex: none; }
 .syncDot[data-on='true'] { background: var(--pos); box-shadow: 0 0 0 3px var(--pos-soft); }
+
+.saveBanner {
+  margin: 12px var(--gutter) 0;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  background: var(--warn-soft);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.saveBanner a { color: var(--warn); font-weight: var(--weight-strong); text-decoration: underline; text-underline-offset: 3px; }
+@media (min-width: 900px) { .saveBanner { margin: 24px 40px 0; } }
