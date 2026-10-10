@@ -245,8 +245,8 @@ Row-level security on every table. A user can only ever read their own rows.
 - Small, readable modules. Comments explain *why*, not *what*.
 - Secrets only in environment variables; never committed.
 - Before building any feature: restate the user problem it solves and the acceptance criteria, then build.
-- **Reuse before you build.** Most pieces are already solved. Before writing a component, look for a proven open-source project, SDK or API and adapt it to Proof's case. Known references: Deltalytix (Next.js + Supabase journal), Tradepad (MIT, Next.js, MCP), TradeNote (GPL v3), MetaApi SDK and open-source MT4/MT5 sync EAs for live import.
-- **Respect licences.** Prefer MIT/Apache code. Do not copy GPL or AGPL code into Proof (it will be a paid service); study it for ideas only. Confirm a project's LICENSE file before reusing anything.
+- **Understand before you build — don't copy.** Most problems have been met before. Study how proven projects solved them (their data model, edge cases, failure modes, and what their users complain about), then build the right version for Proof in our own code. Known references to study: Deltalytix (Next.js + Supabase journal), Tradepad (Next.js, MCP), TradeNote, the MetaApi SDK and open-source MT4/MT5 sync EAs. Record what was learned and what Proof does differently in `docs/RESEARCH.md`.
+- **No copied code.** Learn from other projects; never paste their code into Proof, whatever the licence (several references are non-commercial or copyleft, and Proof will be a paid service). Official SDKs used as dependencies under their licence terms are fine.
 
 ---
 
