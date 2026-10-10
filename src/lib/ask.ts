@@ -24,6 +24,7 @@ export type Intent =
   | { type: 'stat'; metric: Metric; filter: TradeFilter; ofBest?: GroupKey }
   | { type: 'rank'; by: GroupKey; order: 'best' | 'worst'; filter: TradeFilter }
   | { type: 'noteCompare'; term: string; filter: TradeFilter }
+  | { type: 'planCompare'; filter: TradeFilter }
   | { type: 'notes'; query: string; filter: TradeFilter }
   | { type: 'overview'; filter: TradeFilter };
 
@@ -129,6 +130,11 @@ export function parseQuestion(
     return { intent: { type: 'notes', query: query || aboutMatch[1], filter }, scope };
   }
 
+  // "How do I do when I follow my plan?" — uses the one-tap congruence answers.
+  if (/\b(follow(ed|ing)?|stick(ing)? to|stuck to|keep to|break|broke|breaking|ignore[ds]?)\s+(to\s+)?(my\s+|the\s+)?plans?\b/.test(q)) {
+    return { intent: { type: 'planCompare', filter }, scope };
+  }
+
   // "How do I perform when I log 'tired'?"
   const term =
     quoted(question) ??
@@ -163,6 +169,8 @@ export function parseQuestion(
 
   return { intent: { type: 'overview', filter }, scope };
 }
+
+const count = (n: number) => `${n} trade${n === 1 ? '' : 's'}`;
 
 function metricValue(m: Metric, s: Stats): string {
   switch (m) {
@@ -309,6 +317,32 @@ export function answerQuestion(
           { label: 'Win rate', value: fmt.pct(b.stats.winRate) },
         ],
         tradeIds: a.tradeIds, entryIds: notes.slice(0, 8).map((e) => e.id), toolCalls, scope,
+      };
+    }
+
+    case 'planCompare': {
+      const keptF = { ...intent.filter, followedPlan: true };
+      const brokeF = { ...intent.filter, followedPlan: false };
+      toolCalls.push({ tool: 'get_stats', args: keptF }, { tool: 'get_stats', args: brokeF });
+      const kept = getStats(ctx, keptF);
+      const broke = getStats(ctx, brokeF);
+      if (!kept.stats.count && !broke.stats.count) {
+        return {
+          text: 'You haven’t answered “Did you follow your plan?” on any trades yet. Answer it after your next close and I can compare the two.',
+          highlights: [], tradeIds: [], entryIds: [], toolCalls, scope, unsure: true,
+        };
+      }
+      return {
+        text:
+          `When you followed your plan (${count(kept.stats.count)}), you won ${fmt.pct(kept.stats.winRate)} with ${fmt.r(kept.stats.avgR)} a trade. ` +
+          `When you didn’t (${count(broke.stats.count)}), it was ${fmt.pct(broke.stats.winRate)} and ${fmt.r(broke.stats.avgR)}.`,
+        highlights: [
+          { label: 'Followed plan', value: fmt.r(kept.stats.avgR), tone: (kept.stats.avgR ?? 0) >= 0 ? 'pos' : 'neg' },
+          { label: 'Win rate', value: fmt.pct(kept.stats.winRate) },
+          { label: 'Didn’t', value: fmt.r(broke.stats.avgR), tone: (broke.stats.avgR ?? 0) >= 0 ? 'pos' : 'neg' },
+          { label: 'Win rate', value: fmt.pct(broke.stats.winRate) },
+        ],
+        tradeIds: [...broke.tradeIds, ...kept.tradeIds], entryIds: [], toolCalls, scope,
       };
     }
 

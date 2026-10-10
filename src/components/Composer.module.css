@@ -29,12 +29,6 @@
 .ta::placeholder { color: var(--ink-3); }
 
 .kinds { margin: 2px -14px 8px; padding: 2px 14px; }
-.auto {
-  font-size: 9.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.7;
-}
 
 .bar { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
 
@@ -57,7 +51,7 @@
 .micOn { background: var(--neg); color: #fff; animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 7px var(--neg-soft); } }
 
-.err { font-size: 12px; color: var(--neg); padding: 6px 4px 0; }
+.err { font-size: 12px; color: var(--neg-text); padding: 6px 4px 0; }
 
 .toast {
   display: flex;
@@ -96,16 +90,21 @@
   background: var(--accent-soft);
   color: var(--accent);
 }
-.refining { font-weight: 450; color: var(--ink-3); font-size: 12px; animation: blink 1.2s ease-in-out infinite; }
-@keyframes blink { 50% { opacity: 0.4; } }
+.settling {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 50% { opacity: 0.25; } }
 
 .quote {
   margin: 12px 0 6px;
   padding: 10px 14px;
   border-left: 2px solid var(--accent-line);
-  font-family: var(--font-serif);
-  font-size: 19px;
-  line-height: 1.4;
+  font-size: var(--text-md);
+  line-height: 1.55;
   color: var(--ink);
   background: var(--surface-2);
   border-radius: 0 12px 12px 0;
@@ -116,7 +115,7 @@
 .row:first-child { border-top: 0; }
 .rowLabel { font-size: 12px; font-weight: 550; color: var(--ink-3); }
 .rowBody { min-width: 0; }
-.ask { font-family: var(--font-serif); font-size: 18px; margin-bottom: 8px; color: var(--accent); }
+.ask { font-size: var(--text-md); font-weight: var(--weight-strong); margin-bottom: 8px; color: var(--ink); }
 .hint { font-size: 13px; color: var(--ink-2); padding: 10px 0 0; }
 .hint a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 
@@ -127,3 +126,29 @@
   .rowLabel { padding-top: 3px; }
 }
 
+
+/* One-tap congruence */
+.congruence { padding: 22px 20px 14px; text-align: center; }
+.congruenceQ { font-size: var(--text-xl); font-weight: var(--weight-display); letter-spacing: var(--tracking-display); }
+.congruenceSub { margin-top: 4px; font-size: var(--text-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.planQuote {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  text-align: left;
+}
+.congruenceActions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.congruenceActions :global(.btn) { --h: 52px; font-size: 16px; }
+.skip { margin-top: 8px; height: 44px; padding: 0 16px; font-size: 13px; color: var(--ink-3); }
+.skip:hover { color: var(--ink); }
+
+/* Docked variant: a single calm line at rest on phones, full composer once writing. */
+@media (max-width: 899px) {
+  .docked .box { padding: 10px 10px 8px 14px; border-radius: 24px; box-shadow: var(--shadow-3); }
+  .docked .ta { min-height: 26px; font-size: 16px; padding: 6px 2px; }
+  .docked .bar { padding-top: 2px; }
+}

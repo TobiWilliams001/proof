@@ -6,11 +6,12 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { refineWithAI } from '@/lib/ai-client';
 import { fmt } from '@/lib/format';
+import { recordJournalTime } from '@/lib/metrics';
 import { useDictation } from '@/lib/speech';
 import { useJournal } from '@/lib/store';
 import { useNow } from '@/lib/useNow';
 import { detectKind, structureNote, type Clarify } from '@/lib/structure';
-import { KIND_LABEL, type EntryKind, type Structured, type Trade } from '@/lib/types';
+import { isOpen, KIND_LABEL, type EntryKind, type Structured, type Trade } from '@/lib/types';
 import { SPRING } from './motion';
 import s from './Composer.module.css';
 
@@ -47,14 +48,21 @@ export function Composer({
   onDone,
   autoFocus,
   placeholder,
+  docked,
 }: {
   trade?: Trade;
   onDone?: () => void;
   autoFocus?: boolean;
   placeholder?: string;
+  /** Compact resting state for the thumb-zone dock; grows as the trader writes. */
+  docked?: boolean;
 }) {
-  const { data, addEntry, deleteEntry } = useJournal();
-  const [text, setText] = useState('');
+  const { data, addEntry, deleteEntry, updateEntry } = useJournal();
+  const draftKey = `proof.draft.${trade?.id ?? 'journal'}`;
+  const [text, setTextRaw] = useState('');
+  const startedAt = useRef<number | null>(null);
+  // Saved note waiting on the one-tap "did you follow your plan?" answer.
+  const [askPlan, setAskPlan] = useState<{ entryId: string; trade: Trade; label: string } | null>(null);
   const [structure, setStructure] = useState(true);
   const [manualKind, setManualKind] = useState<EntryKind | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -68,11 +76,30 @@ export function Composer({
 
   useEffect(() => {
     try {
-      // Restoring a per-device preference after hydration.
+      // Restoring per-device state after hydration: the mode preference, and any
+      // unsent draft — nothing a trader writes should be lost to a reload.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (localStorage.getItem(MODE_KEY) === 'raw') setStructure(false);
+      const kept = localStorage.getItem(draftKey);
+      if (kept) setTextRaw(kept);
     } catch {}
-  }, []);
+    if (trade) startedAt.current = Date.now();
+  }, [draftKey, trade]);
+
+  const setText = useCallback(
+    (next: string | ((prev: string) => string)) => {
+      setTextRaw((prev) => {
+        const value = typeof next === 'function' ? next(prev) : next;
+        if (startedAt.current == null && value) startedAt.current = Date.now();
+        try {
+          if (value.trim()) localStorage.setItem(draftKey, value);
+          else localStorage.removeItem(draftKey);
+        } catch {}
+        return value;
+      });
+    },
+    [draftKey],
+  );
 
   const setMode = (on: boolean) => {
     setStructure(on);
@@ -81,9 +108,10 @@ export function Composer({
     } catch {}
   };
 
-  const appendDictation = useCallback((t: string) => {
-    setText((prev) => (prev ? `${prev.trimEnd()} ${t}` : t.charAt(0).toUpperCase() + t.slice(1)));
-  }, []);
+  const appendDictation = useCallback(
+    (t: string) => setText((prev) => (prev ? `${prev.trimEnd()} ${t}` : t.charAt(0).toUpperCase() + t.slice(1))),
+    [setText],
+  );
   const mic = useDictation(appendDictation);
 
   // Auto-grow the box so long notes never scroll inside a tiny field.
@@ -95,14 +123,15 @@ export function Composer({
   }, [text, mic.interim]);
 
   const detected = useMemo(() => (text.trim() ? detectKind(text, { linkedTrade: !!trade }) : null), [text, trade]);
-  const kind = manualKind ?? detected ?? (trade ? 'trade_note' : 'reflection');
+  const openTrade = !!trade && isOpen(trade);
+  const kind = manualKind ?? (openTrade ? 'plan' : detected) ?? (trade ? 'trade_note' : 'reflection');
 
   const noted = useMemo(() => new Set(data.entries.map((e) => e.tradeId).filter(Boolean)), [data.entries]);
 
   function linkCandidate(d: Draft): Trade | undefined {
     if (d.tradeId || !d.structured.symbol || (d.kind !== 'trade_note' && d.kind !== 'rule_break')) return;
     const cutoff = new Date(now - 3 * 864e5).toISOString();
-    return data.trades.find((t) => t.symbol === d.structured.symbol && t.closedAt >= cutoff && !noted.has(t.id));
+    return data.trades.find((t) => !isOpen(t) && t.symbol === d.structured.symbol && t.closedAt >= cutoff && !noted.has(t.id));
   }
 
   function reset() {
@@ -114,20 +143,47 @@ export function Composer({
     reqId.current++;
   }
 
+  function finish(entryId: string, label: string) {
+    setSaved({ id: entryId, label });
+    setTimeout(() => setSaved((cur) => (cur?.id === entryId ? null : cur)), 5000);
+    onDone?.();
+  }
+
   function commit(d: Draft | null, opts: { asWritten?: boolean } = {}) {
     const structuredSave = !!d && !opts.asWritten;
+    const entryKind = d?.kind ?? kind;
+    const tradeId = d?.tradeId ?? trade?.id;
     const entry = addEntry({
-      kind: d?.kind ?? kind,
+      kind: entryKind,
       text: text.trim(),
       // A trade link chosen on the confirm card survives "Keep as written".
-      tradeId: d?.tradeId ?? trade?.id,
+      tradeId,
       structured: structuredSave ? d!.structured : undefined,
       confidence: structuredSave ? d!.confidence : undefined,
     });
-    setSaved({ id: entry.id, label: structuredSave ? 'Saved and structured' : 'Saved as written' });
+    if (startedAt.current) recordJournalTime((Date.now() - startedAt.current) / 1000);
+    startedAt.current = null;
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {}
+    const label = structuredSave ? 'Saved and structured' : 'Saved as written';
     reset();
-    setTimeout(() => setSaved((cur) => (cur?.id === entry.id ? null : cur)), 5000);
-    onDone?.();
+
+    // After a closed trade, one tap: did you follow your plan? Asked once per trade.
+    const linked = data.trades.find((t) => t.id === tradeId);
+    const alreadyAnswered = data.entries.some((e) => e.tradeId === tradeId && e.followedPlan != null);
+    if (linked && !isOpen(linked) && (entryKind === 'trade_note' || entryKind === 'rule_break') && !alreadyAnswered) {
+      setAskPlan({ entryId: entry.id, trade: linked, label });
+      return;
+    }
+    finish(entry.id, label);
+  }
+
+  function answerPlan(followed: boolean | null) {
+    if (!askPlan) return;
+    if (followed != null) updateEntry(askPlan.entryId, { followedPlan: followed });
+    finish(askPlan.entryId, askPlan.label);
+    setAskPlan(null);
   }
 
   function submit() {
@@ -169,11 +225,7 @@ export function Composer({
         <div className={s.confirmHead}>
           <span className={s.spark}><Sparkles size={14} /></span>
           <span>Here’s how I read it</span>
-          {refining && <span className={s.refining}>refining…</span>}
-          <span className="spacer" />
-          <span className="faint num" style={{ fontSize: 12 }} title="How sure the mapping is">
-            {Math.round(draft.confidence * 100)}%
-          </span>
+          {refining && <span className={s.settling} aria-hidden />}
         </div>
 
         <blockquote className={s.quote}>{text}</blockquote>
@@ -239,7 +291,7 @@ export function Composer({
                       }))
                     }
                   >
-                    {x.name}
+                    {(draft.clarify && !draft.structured.setup && draft.clarify.labels[x.name]) || x.name}
                   </button>
                 ))}
                 {draft.clarify && !draft.structured.setup && (
@@ -333,9 +385,28 @@ export function Composer({
     );
   }
 
+  // ── Did you follow your plan? ──────────────────────────────
+  if (askPlan) {
+    const plan = data.entries.find((e) => e.tradeId === askPlan.trade.id && e.kind === 'plan');
+    return swap('plan',
+      <div className={`${s.box} ${s.congruence}`}>
+        <p className={s.congruenceQ}>Did you follow your plan?</p>
+        <p className={s.congruenceSub}>
+          {askPlan.trade.symbol} {askPlan.trade.side} · {askPlan.trade.r != null ? fmt.r(askPlan.trade.r) : fmt.pnl(askPlan.trade.pnl)}
+        </p>
+        {plan && <blockquote className={s.planQuote}>Your plan: “{plan.text}”</blockquote>}
+        <div className={s.congruenceActions}>
+          <button className="btn btn-soft" onClick={() => answerPlan(false)}>No</button>
+          <button className="btn btn-primary" onClick={() => answerPlan(true)}>Yes</button>
+        </div>
+        <button className={s.skip} onClick={() => answerPlan(null)}>Skip</button>
+      </div>,
+    );
+  }
+
   // ── Writing ─────────────────────────────────────────────────
   return swap('write',
-    <div className={s.wrapOuter}>
+    <div className={`${s.wrapOuter} ${docked ? s.docked : ''}`}>
       <div className={`${s.box} ${mic.listening ? s.listening : ''}`}>
         <label htmlFor="composer" className="sr-only">
           What happened?
@@ -344,13 +415,13 @@ export function Composer({
           id="composer"
           ref={taRef}
           className={s.ta}
-          rows={3}
+          rows={docked ? 1 : 3}
           value={mic.interim ? `${text}${text ? ' ' : ''}${mic.interim}` : text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
           }}
-          placeholder={placeholder ?? 'What happened? A trade, a missed one, a plan, how you feel…'}
+          placeholder={placeholder ?? (openTrade ? 'What’s the plan? Why this trade, where you’re wrong…' : docked ? 'What happened?' : 'What happened? A trade, a missed one, a plan, how you feel…')}
           autoFocus={autoFocus}
           data-autofocus={autoFocus || undefined}
         />
@@ -360,7 +431,6 @@ export function Composer({
             {KINDS.map((k) => (
               <button key={k} className="chip chip-sm" aria-pressed={kind === k} onClick={() => setManualKind(k)}>
                 {KIND_LABEL[k]}
-                {!manualKind && detected === k && <span className={s.auto}>auto</span>}
               </button>
             ))}
           </div>

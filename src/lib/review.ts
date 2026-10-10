@@ -1,6 +1,7 @@
 import { addDays, startOfWeek, ymd } from './dates';
 import { computeStats, groupStats, rDistribution, type Stats } from './stats';
-import type { Entry, Trade } from './types';
+import { congruence } from './tools';
+import { closedOnly, type Entry, type Trade } from './types';
 
 export interface WeeklyReview {
   weekStart: string;
@@ -10,8 +11,13 @@ export interface WeeklyReview {
   distribution: { bin: number; count: number }[];
   bestSetup?: { name: string; totalR: number; count: number };
   worstSetup?: { name: string; totalR: number; count: number };
-  /** Share of trades that did NOT come with a rule-break note. */
+  /**
+   * Share of trades where the plan was followed. From the one-tap answers when
+   * there are any; otherwise estimated from rule-break notes.
+   */
   adherence: number | null;
+  adherenceSource: 'answers' | 'rule_breaks' | null;
+  planAnswered: number;
   ruleBreaks: Entry[];
   missed: Entry[];
   missedR: number;
@@ -28,9 +34,8 @@ const STOP = new Set(
   ),
 );
 
-export function themesFrom(entries: Entry[], limit = 6) {
-  const counts = new Map<string, Set<string>>();
-  for (const e of entries) {
+/** The meaningful words and tags in one note, as used for themes. */
+export function wordsOf(e: Entry): Set<string> {
     const tags = (e.structured?.tags ?? []).map((t) => t.toLowerCase());
     const words = new Set(
       e.text
@@ -43,7 +48,13 @@ export function themesFrom(entries: Entry[], limit = 6) {
         .filter((w) => w.length > 3 && /[a-z]/.test(w) && !STOP.has(w) && !tags.some((t) => t.includes(' ') && t.split(' ').includes(w))),
     );
     for (const tag of tags) words.add(tag);
-    for (const w of words) counts.set(w, (counts.get(w) ?? new Set()).add(e.id));
+    return words;
+}
+
+export function themesFrom(entries: Entry[], limit = 6) {
+  const counts = new Map<string, Set<string>>();
+  for (const e of entries) {
+    for (const w of wordsOf(e)) counts.set(w, (counts.get(w) ?? new Set()).add(e.id));
   }
   return [...counts.entries()]
     .filter(([, ids]) => ids.size >= 2)
@@ -57,7 +68,7 @@ export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWee
   const end = addDays(start, 7);
   const inWeek = (iso: string) => iso >= start.toISOString() && iso < end.toISOString();
 
-  const weekTrades = trades.filter((t) => inWeek(t.closedAt));
+  const weekTrades = closedOnly(trades).filter((t) => inWeek(t.closedAt));
   const weekEntries = entries.filter((e) => inWeek(e.createdAt));
   const ruleBreaks = weekEntries.filter((e) => e.kind === 'rule_break');
   const missed = weekEntries.filter((e) => e.kind === 'missed');
@@ -82,7 +93,22 @@ export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWee
     distribution: rDistribution(weekTrades),
     bestSetup: toSummary(setups[0]),
     worstSetup: setups.length > 1 ? toSummary(setups.at(-1)) : undefined,
-    adherence: weekTrades.length ? (weekTrades.length - broken) / weekTrades.length : null,
+    ...(() => {
+      const plan = congruence({ trades: weekTrades, entries });
+      const answered = weekTrades.filter((t) => plan.has(t.id));
+      if (answered.length) {
+        return {
+          adherence: answered.filter((t) => plan.get(t.id)).length / answered.length,
+          adherenceSource: 'answers' as const,
+          planAnswered: answered.length,
+        };
+      }
+      return {
+        adherence: weekTrades.length ? (weekTrades.length - broken) / weekTrades.length : null,
+        adherenceSource: weekTrades.length ? ('rule_breaks' as const) : null,
+        planAnswered: 0,
+      };
+    })(),
     ruleBreaks,
     missed,
     missedR: missed.reduce((sum, e) => sum + (e.structured?.r ?? 0), 0),
