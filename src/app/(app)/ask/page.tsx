@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EntryItem, TradeItem } from '@/components/Items';
 import { SPRING, stagger } from '@/components/motion';
+import { VoiceHelp } from '@/components/Voice';
 import { answerQuestion, type Answer } from '@/lib/ask';
 import { useDictation } from '@/lib/speech';
 import { useJournal } from '@/lib/store';
@@ -30,7 +31,8 @@ export default function AskPage() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const append = useCallback((t: string) => setInput((p) => (p ? `${p} ${t}` : t)), []);
-  const mic = useDictation(append);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mic = useDictation(append, { onFallback: () => inputRef.current?.focus() });
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -86,6 +88,11 @@ export default function AskPage() {
         <div ref={endRef} />
       </div>
 
+      {mic.error && (
+        <div className={s.voiceHelp}>
+          <VoiceHelp mic={mic} />
+        </div>
+      )}
       <form
         className={s.askBar}
         onSubmit={(e) => {
@@ -96,13 +103,14 @@ export default function AskPage() {
         <input
           className={s.askInput}
           placeholder="Ask anything about your trading…"
+          ref={inputRef}
           value={mic.interim ? `${input} ${mic.interim}` : input}
           onChange={(e) => setInput(e.target.value)}
           aria-label="Your question"
           enterKeyHint="send"
         />
         {mic.supported && (
-          <button type="button" className={`btn btn-icon btn-sm ${mic.listening ? s.micOn : 'btn-ghost'}`} onClick={mic.toggle} aria-label="Dictate question">
+          <button type="button" className={`btn btn-icon btn-sm ${mic.listening ? s.micOn : 'btn-ghost'}`} onClick={mic.toggle} aria-label={mic.listening ? 'Stop listening' : 'Ask by voice'}>
             {mic.listening ? <Square size={12} fill="currentColor" /> : <Mic size={16} />}
           </button>
         )}

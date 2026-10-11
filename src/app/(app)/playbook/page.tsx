@@ -1,7 +1,8 @@
 'use client';
 
 import { Plus, Sparkles, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { MicButton, useVoice, VoiceHelp } from '@/components/Voice';
 import { importPlaybook } from '@/lib/ai-client';
 import { uid } from '@/lib/id';
 import { Reveal } from '@/components/motion';
@@ -19,6 +20,8 @@ export default function PlaybookPage() {
   const { data, setPlaybook } = useJournal();
   const pb = data.playbook;
   const [desc, setDesc] = useState('');
+  const descRef = useRef<HTMLTextAreaElement>(null);
+  const descMic = useVoice(setDesc, descRef);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [tag, setTag] = useState('');
@@ -66,13 +69,16 @@ export default function PlaybookPage() {
         </label>
         <textarea
           id="desc"
+          ref={descRef}
           className={s.describeBox}
           rows={3}
-          value={desc}
+          value={descMic.interim ? `${desc} ${descMic.interim}` : desc}
           onChange={(e) => setDesc(e.target.value)}
           placeholder="I trade 2-touch and 3-touch continuations at value areas on the 1H. I track whether I was patient or entered early…"
         />
+        <VoiceHelp mic={descMic} />
         <div className="row">
+          <MicButton mic={descMic} />
           {msg && <p className={s.msg}>{msg}</p>}
           <span className="spacer" />
           <button className="btn btn-primary btn-sm" disabled={!desc.trim() || busy} onClick={runImport}>
@@ -114,14 +120,7 @@ export default function PlaybookPage() {
                     <Trash2 size={14} />
                   </button>
                 </div>
-                <textarea
-                  className={s.descInput}
-                  rows={1}
-                  value={x.description ?? ''}
-                  placeholder="What makes it this setup?"
-                  onChange={(e) => updateSetup(x.id, { description: e.target.value })}
-                  aria-label="Description"
-                />
+                <SetupDescription value={x.description ?? ''} onChange={(description) => updateSetup(x.id, { description })} />
                 <label className={s.aliases}>
                   <span className="faint">Also called</span>
                   <ListInput
@@ -231,5 +230,32 @@ function ListInput({
       }}
       onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
     />
+  );
+}
+
+/** A setup's description, with voice like every other text box. */
+function SetupDescription({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const latest = useRef(value);
+  useEffect(() => {
+    latest.current = value;
+  }, [value]);
+  const mic = useVoice((fn) => onChange(fn(latest.current)), ref);
+  return (
+    <>
+      <div className={s.descRow}>
+        <textarea
+          ref={ref}
+          className={s.descInput}
+          rows={1}
+          value={mic.interim ? `${value} ${mic.interim}` : value}
+          placeholder="What makes it this setup?"
+          onChange={(e) => onChange(e.target.value)}
+          aria-label="Description"
+        />
+        <MicButton mic={mic} label="Describe it by voice" />
+      </div>
+      <VoiceHelp mic={mic} />
+    </>
   );
 }

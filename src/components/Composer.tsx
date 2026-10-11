@@ -13,6 +13,7 @@ import { useNow } from '@/lib/useNow';
 import { detectKind, structureNote, type Clarify } from '@/lib/structure';
 import { isOpen, KIND_LABEL, type EntryKind, type Structured, type Trade } from '@/lib/types';
 import { SPRING } from './motion';
+import { VoiceHelp } from './Voice';
 import s from './Composer.module.css';
 
 // Same root element in both states, so AnimatePresence can cross-fade them.
@@ -112,7 +113,7 @@ export function Composer({
     (t: string) => setText((prev) => (prev ? `${prev.trimEnd()} ${t}` : t.charAt(0).toUpperCase() + t.slice(1))),
     [setText],
   );
-  const mic = useDictation(appendDictation);
+  const mic = useDictation(appendDictation, { onFallback: () => taRef.current?.focus() });
 
   // Auto-grow the box so long notes never scroll inside a tiny field.
   useEffect(() => {
@@ -441,7 +442,7 @@ export function Composer({
             <button
               className={`btn btn-icon btn-sm ${mic.listening ? s.micOn : 'btn-soft'}`}
               onClick={mic.toggle}
-              aria-label={mic.listening ? 'Stop dictation' : 'Dictate'}
+              aria-label={mic.listening ? 'Stop listening' : 'Talk instead of typing'}
               aria-pressed={mic.listening}
             >
               {mic.listening ? <Square size={13} fill="currentColor" /> : <Mic size={16} />}
@@ -461,7 +462,7 @@ export function Composer({
             <ArrowUp size={18} />
           </button>
         </div>
-        {mic.error && <p className={s.err}>{mic.error}</p>}
+        <VoiceHelp mic={mic} />
       </div>
 
       <AnimatePresence>

@@ -1,0 +1,20 @@
+.on { background: var(--neg); color: #fff; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 7px var(--neg-soft); } }
+
+.help {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.dismiss {
+  margin-left: 4px;
+  font-weight: var(--weight-strong);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: 32px;
+}

@@ -2,9 +2,10 @@
 
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RBars } from '@/components/Charts';
 import { EntryItem, TradeItem } from '@/components/Items';
+import { MicButton, useVoice, VoiceHelp } from '@/components/Voice';
 import { Reveal } from '@/components/motion';
 import { addDays, startOfWeek, ymd } from '@/lib/dates';
 import { fmt } from '@/lib/format';
@@ -33,6 +34,8 @@ export default function ReviewPage() {
 
   const saved = data.reviews.find((x) => x.weekStart === r.weekStart)?.improvement ?? '';
   const [improvement, setImp] = useState(saved);
+  const impRef = useRef<HTMLTextAreaElement>(null);
+  const impMic = useVoice(setImp, impRef);
   // Keep the textarea in step when switching weeks or after storage loads.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setImp(saved), [saved, r.weekStart]);
@@ -162,14 +165,17 @@ export default function ReviewPage() {
             </p>
           )}
           <textarea
+            ref={impRef}
             className="textarea"
             style={{ marginTop: 14 }}
             placeholder="e.g. No entries in the first 15 minutes after a loss."
-            value={improvement}
+            value={impMic.interim ? `${improvement} ${impMic.interim}` : improvement}
             onChange={(e) => setImp(e.target.value)}
             onBlur={() => improvement !== saved && setImprovement(r.weekStart, improvement.trim())}
           />
+          <VoiceHelp mic={impMic} />
           <div className="row" style={{ marginTop: 10 }}>
+            <MicButton mic={impMic} />
             <span className="faint" style={{ fontSize: 12 }}>{improvement === saved && saved ? 'Saved' : 'Saves when you leave the box'}</span>
             <span className="spacer" />
             <button className="btn btn-primary btn-sm" disabled={improvement === saved} onClick={() => setImprovement(r.weekStart, improvement.trim())}>
