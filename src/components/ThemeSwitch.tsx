@@ -15,7 +15,7 @@ function apply(choice: Choice) {
 }
 
 export function useThemeChoice(): [Choice, (c: Choice) => void] {
-  const [choice, setChoice] = useState<Choice>('dark');
+  const [choice, setChoice] = useState<Choice>('system');
   useEffect(() => {
     const t = document.documentElement.dataset.theme;
     // Syncing from the DOM attribute the pre-paint script set.
@@ -28,9 +28,9 @@ export function useThemeChoice(): [Choice, (c: Choice) => void] {
 export function ThemeSwitch() {
   const [choice, set] = useThemeChoice();
   const opts: [Choice, React.ReactNode, string][] = [
-    ['dark', <Moon key="d" size={15} />, 'Dark'],
-    ['light', <Sun key="l" size={15} />, 'Light'],
     ['system', <Monitor key="s" size={15} />, 'Match device'],
+    ['light', <Sun key="l" size={15} />, 'Light'],
+    ['dark', <Moon key="d" size={15} />, 'Dark'],
   ];
   return (
     <div className="seg" role="group" aria-label="Theme">

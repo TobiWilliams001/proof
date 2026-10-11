@@ -22,12 +22,15 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#0c0d0f',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f6f5f1' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0d0f' },
+  ],
 };
 
-// Runs before first paint so the theme never flashes. Dark is the default
-// (traders live on dark charts); "system" follows the device.
-const themeScript = `try{var t=localStorage.getItem('proof.theme');if(t!=='system')document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}`;
+// Runs before first paint so the theme never flashes. By default Proof follows
+// the device (light or dark); a choice made in Settings overrides it.
+const themeScript = `try{var t=localStorage.getItem('proof.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}`;
 
 // The installed app opens on the Proof splash once per launch. Decided before
 // paint so it never flickers; normal browser tabs never see it.
