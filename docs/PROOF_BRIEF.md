@@ -59,7 +59,7 @@ Proof should look and feel like a best-in-class 2026 product: modern, clean, sle
 
 **Visual system**
 - **Design tokens first:** one source of truth for colour, type, spacing, radius and shadow. No one-off values.
-- **Dark mode by default** (traders live on dark charts), with an equally polished light mode. Both meet WCAG AA contrast.
+- **Follows the device by default:** light or dark to match the phone or computer, with both themes equally polished and a manual choice in Settings. Both meet WCAG AA contrast.
 - **Restrained palette:** neutral base, one accent colour, and semantic colours for profit/loss that never rely on colour alone (pair with +/−, icons or labels).
 - **Typography:** one clean sans-serif, a clear type scale, generous line height, **tabular numerals** for all prices, P&L and R values.
 - **Space over borders:** structure comes from spacing and hierarchy, not boxes and lines.
