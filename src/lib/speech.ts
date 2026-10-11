@@ -15,6 +15,7 @@ interface Recognition {
   lang: string;
   start(): void;
   stop(): void;
+  abort?(): void;
   onresult: ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null;
   onend: (() => void) | null;
   onerror: ((e: { error: string }) => void) | null;
@@ -57,6 +58,10 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
   const [interim, setInterim] = useState('');
   const [error, setError] = useState<string | null>(null);
   const rec = useRef<Recognition | null>(null);
+  // True from the tap on the mic until the tap on stop, even while permission is
+  // still being asked. The button reads this, not async state, so a quick second
+  // tap always means "stop" and can never start a second recording.
+  const active = useRef(false);
   const cb = useRef(onText);
   const fallback = useRef(opts.onFallback);
   useEffect(() => {
@@ -73,6 +78,7 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
   }, []);
 
   const fail = useCallback((kind: 'blocked' | 'unavailable' | 'network') => {
+    active.current = false;
     setListening(false);
     setInterim('');
     setError(explain(kind));
@@ -84,6 +90,8 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
     setError(null);
     const Ctor = getCtor();
     if (!Ctor) return fail('unavailable');
+    active.current = true;
+    setListening(true); // show "stop" straight away
 
     // Ask for the microphone explicitly: this is what makes iPhone show its prompt.
     if (navigator.mediaDevices?.getUserMedia) {
@@ -93,6 +101,8 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
       } catch (e) {
         return fail((e as DOMException)?.name === 'NotAllowedError' ? 'blocked' : 'unavailable');
       }
+      // Stopped while we were asking for permission: don't start after all.
+      if (!active.current) return;
     }
 
     const r = new Ctor();
@@ -104,10 +114,11 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
       let live = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
+        // Words finished just before "stop" still count; half-heard ones after it don't.
         if (res.isFinal) cb.current(res[0].transcript.trim());
         else live += res[0].transcript;
       }
-      setInterim(live);
+      setInterim(active.current ? live : '');
     };
     r.onerror = (e) => {
       if (e.error === 'no-speech' || e.error === 'aborted') return;
@@ -116,19 +127,38 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
       else fail('unavailable');
     };
     r.onend = () => {
+      active.current = false;
       setListening(false);
       setInterim('');
     };
     rec.current = r;
     try {
       r.start();
-      setListening(true);
     } catch {
       fail('unavailable');
     }
   }, [fail]);
 
-  const stop = useCallback(() => rec.current?.stop(), []);
+  const stop = useCallback(() => {
+    active.current = false;
+    setListening(false);
+    setInterim('');
+    const r = rec.current;
+    if (!r) return;
+    try {
+      r.stop();
+    } catch {}
+    // Some browsers (iPhone especially) never confirm the stop; force it closed.
+    setTimeout(() => {
+      if (rec.current === r && !active.current) {
+        try {
+          r.abort?.();
+        } catch {}
+      }
+    }, 1200);
+  }, []);
 
-  return { supported, listening, interim, error, start, stop, toggle: listening ? stop : start, clearError: () => setError(null) };
+  const toggle = useCallback(() => (active.current ? stop() : start()), [start, stop]);
+
+  return { supported, listening, interim, error, start, stop, toggle, clearError: () => setError(null) };
 }

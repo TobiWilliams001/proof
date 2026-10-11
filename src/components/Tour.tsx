@@ -72,8 +72,15 @@ export function Tour() {
       seen = localStorage.getItem(DONE_KEY) === '1';
     } catch {}
     // First visit only; opening after hydration so the page is there to point at.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!seen) setOpen(true);
+    // It's marked done as soon as it's shown, so it never comes back on its own,
+    // however it's left (finished, skipped, closed mid-way or the app quit).
+    if (!seen) {
+      try {
+        localStorage.setItem(DONE_KEY, '1');
+      } catch {}
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpen(true);
+    }
   }, [ready, path]);
 
   const target = step?.target;
