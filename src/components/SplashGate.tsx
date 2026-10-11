@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-const HOLD_MS = 1200; // long enough to register the brand, short enough not to wait on
+const HOLD_MS = 2500; // 2.5 s on screen, then a short fade into the app
 const FADE_MS = 420;
 
 /** Lifts the launch splash (see the inline script in the root layout) after a short hold. */
