@@ -508,3 +508,27 @@ button.list-item:hover, a.list-item:hover { background: var(--surface-2); }
   .stat { padding: 14px 16px; }
   .stat-value { font-size: 22px; }
 }
+
+/* Launch splash for the installed app: the home-screen icon, full screen. */
+#splash { display: none; }
+html.splash #splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0d0f;
+  transition: opacity 0.42s var(--ease);
+}
+html.splash #splash span {
+  color: #ecedef;
+  font-weight: 700;
+  font-size: clamp(48px, 15vw, 72px);
+  letter-spacing: -0.045em;
+  animation: splashIn 0.6s var(--ease) both;
+}
+html.splash body { overflow: hidden; }
+html.splash-out #splash { opacity: 0; pointer-events: none; }
+@keyframes splashIn { from { opacity: 0; transform: scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { html.splash #splash span { animation: none; } }
