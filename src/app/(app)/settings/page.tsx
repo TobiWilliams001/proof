@@ -1,11 +1,12 @@
 'use client';
 
-import { Calculator, ChevronRight, Compass, Download, Lock, Sparkles, Trash2 } from 'lucide-react';
+import { Calculator, ChevronRight, Compass, UserRound, Download, Lock, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { CsvImport } from '@/components/CsvImport';
 import { SyncAccounts } from '@/components/SyncAccounts';
 import { InstallCard } from '@/components/InstallCard';
 import { startTour } from '@/components/Tour';
+import { startOnboarding } from '@/components/Onboarding';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Reveal } from '@/components/motion';
 import { typicalJournalTime } from '@/lib/metrics';
@@ -83,6 +84,11 @@ export default function SettingsPage() {
           <button className="list-item" onClick={startTour}>
             <Compass size={17} className="faint" />
             <span style={{ flex: 1 }}>Take the tour again</span>
+            <ChevronRight size={16} className="faint" />
+          </button>
+          <button className="list-item" onClick={startOnboarding}>
+            <UserRound size={17} className="faint" />
+            <span style={{ flex: 1 }}>Update your welcome answers</span>
             <ChevronRight size={16} className="faint" />
           </button>
           <Link href="/calculator" className="list-item">

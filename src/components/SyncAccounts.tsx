@@ -81,8 +81,8 @@ function Status({ a, now }: { a: SyncAccount; now: number }) {
 }
 
 function ConnectForm({ onDone }: { onDone: () => void }) {
-  const { addAccount } = useJournal();
-  const [f, setF] = useState({ platform: 'mt5' as 'mt4' | 'mt5', login: '', password: '', server: '', name: '' });
+  const { addAccount, data } = useJournal();
+  const [f, setF] = useState({ platform: (data.profile?.platform === 'MT4' ? 'mt4' : 'mt5') as 'mt4' | 'mt5', login: '', password: '', server: '', name: '' });
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<{ text: string; suggestions?: string[] } | null>(null);
   const valid = /^\d{3,12}$/.test(f.login.trim()) && f.password && f.server.trim();

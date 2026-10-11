@@ -62,15 +62,32 @@ export function Tour() {
       setOpen(true);
     };
     window.addEventListener('proof:tour', show);
-    return () => window.removeEventListener('proof:tour', show);
+    // Straight after the welcome questions on first open.
+    const afterWelcome = () => {
+      let seen = true;
+      try {
+        seen = localStorage.getItem(DONE_KEY) === '1';
+        if (!seen) localStorage.setItem(DONE_KEY, '1');
+      } catch {}
+      if (!seen) show();
+    };
+    window.addEventListener('proof:onboarded', afterWelcome);
+    return () => {
+      window.removeEventListener('proof:tour', show);
+      window.removeEventListener('proof:onboarded', afterWelcome);
+    };
   }, []);
 
   useEffect(() => {
     if (!ready || path !== '/journal') return;
     let seen = true;
+    let welcomed = false;
     try {
       seen = localStorage.getItem(DONE_KEY) === '1';
+      welcomed = localStorage.getItem('proof.onboarding.done') === '1';
     } catch {}
+    // The welcome questions come first; the tour follows them.
+    if (!welcomed) return;
     // First visit only; opening after hydration so the page is there to point at.
     // It's marked done as soon as it's shown, so it never comes back on its own,
     // however it's left (finished, skipped, closed mid-way or the app quit).

@@ -10,6 +10,7 @@ import { useAutoSync } from '@/lib/sync/useAutoSync';
 import { Logo } from './Logo';
 import { MotionRoot, SPRING } from './motion';
 import { ThemeToggle } from './ThemeSwitch';
+import { Onboarding } from './Onboarding';
 import { Tour } from './Tour';
 import s from './AppShell.module.css';
 
@@ -95,6 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </motion.div>
       </main>
 
+      <Onboarding />
       <Tour />
 
       {/* Mobile tab bar */}

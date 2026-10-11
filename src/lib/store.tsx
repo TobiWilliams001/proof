@@ -6,7 +6,7 @@ import { rFromPrices } from './stats';
 import { linkEarlyNotes } from './link';
 import { uid } from './id';
 import { emptyJournal, storage } from './storage';
-import { isOpen, type Entry, type JournalData, type Playbook, type QuestionLog, type SyncAccount, type Trade } from './types';
+import { isOpen, type Entry, type JournalData, type Playbook, type QuestionLog, type SyncAccount, type Trade, type TraderProfile } from './types';
 
 interface JournalApi {
   data: JournalData;
@@ -22,6 +22,7 @@ interface JournalApi {
   /** Closes an open position; R comes from the stop when one was given. */
   closeTrade(id: string, close: { exit: number; pnl: number; closedAt: string }): void;
   setPlaybook(p: Playbook): void;
+  setProfile(p: TraderProfile): void;
   logQuestion(q: Omit<QuestionLog, 'id' | 'askedAt'>): void;
   setImprovement(weekStart: string, improvement: string): void;
   addAccount(a: SyncAccount): void;
@@ -125,6 +126,9 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           trades: d.trades.filter((t) => t.id !== id),
           entries: d.entries.map((e) => (e.tradeId === id ? { ...e, tradeId: undefined } : e)),
         }));
+      },
+      setProfile(profile) {
+        update((d) => ({ ...d, profile }));
       },
       setPlaybook(playbook) {
         update((d) => ({ ...d, playbook }));

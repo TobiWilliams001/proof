@@ -107,9 +107,23 @@ export interface SyncAccount {
   stops: Record<string, number>;
 }
 
+/** The welcome questions: who the trader is, so Proof fits them (and you learn your audience). */
+export interface TraderProfile {
+  markets: string[];
+  account?: string;
+  platform?: string;
+  journalNow?: string;
+  journalApp?: string;
+  goal?: string;
+  chat?: boolean;
+  email?: string;
+  answeredAt: string;
+}
+
 export interface JournalData {
   version: 2;
   accounts?: SyncAccount[];
+  profile?: TraderProfile;
   trades: Trade[];
   entries: Entry[];
   playbook: Playbook;
