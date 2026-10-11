@@ -29,13 +29,14 @@ const WINS = [
   ['Find your edge.', 'See which setups, pairs and sessions make you money, in R and in your account currency, so you can do more of what works.'],
   ['Stop the leaks.', 'Spot the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Seen clearly, they’re fixable.'],
   ['Pass the challenge. Keep the account.', 'For prop traders, consistency is everything. Proof shows whether you’re trading your plan, before a bad week turns into a lost account.'],
-  ['Feel in control again.', 'No more wondering if you’re improving. Your weekly review shows exactly where you stand and the one thing to fix next.'],
+  ['Feel in control again.', 'No more wondering if you’re improving. Your weekly review shows where you stand and one thing to try next.'],
 ];
 
-const INSIGHTS = [
-  { text: 'Trades taken within an hour of a loss', value: '−14R this quarter', tone: 'neg' },
-  { text: '3-touch continuations at value areas', value: '+22R · your strongest setup', tone: 'pos' },
-  { text: 'Setups you skipped that broke your rules', value: '4 skipped · 3 would have lost', tone: 'pos' },
+// Questions, not results: Proof never markets outcomes it hasn't measured for you.
+const QUESTIONS = [
+  'How do my trades do in the hour after a loss?',
+  'Which setup makes me the most?',
+  'Do I do better when I follow my plan?',
 ];
 
 const KINDS = [
@@ -102,9 +103,9 @@ export default function Landing() {
           <Reveal delay={0.45} y={28} className={`${s.demoCard} ${s.demoAsk}`}>
             <div className={s.demoQ}>Which setup makes me the most?</div>
             <p className={s.demoA}>
-              3-touch makes you the most R: <strong className="pos">+22.0R</strong> over 18 trades (61% win rate).
+              3-touch makes you the most R. Here are the trades behind it, with how sure that is.
             </p>
-            <div className={s.demoFoot}>Based on 18 trades ›</div>
+            <div className={s.demoFoot}>See the trades ›</div>
           </Reveal>
           <p className={s.demoLabel}>Example from a sample journal</p>
         </div>
@@ -157,11 +158,11 @@ export default function Landing() {
           </div>
 
           <Reveal className={s.insights}>
-            <p className={s.insightsLabel}>Example insights <span>(illustrative, from a sample journal)</span></p>
-            {INSIGHTS.map((x) => (
-              <div key={x.text} className={s.insight}>
-                <span>{x.text}</span>
-                <span className={`num ${x.tone}`}>{x.value}</span>
+            <p className={s.insightsLabel}>Questions you can ask your journal</p>
+            {QUESTIONS.map((q) => (
+              <div key={q} className={s.insight}>
+                <span>{q}</span>
+                <span className="faint">›</span>
               </div>
             ))}
           </Reveal>

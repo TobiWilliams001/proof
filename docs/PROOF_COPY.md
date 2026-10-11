@@ -65,12 +65,12 @@ Spot the habits quietly costing you: trading after losses, oversizing when confi
 For prop traders, consistency is everything. Proof shows whether you're trading your plan, before a bad week turns into a lost account.
 
 **Feel in control again.**
-No more wondering if you're improving. Your weekly review shows exactly where you stand and the one thing to fix next.
+No more wondering if you're improving. Your weekly review shows where you stand and one thing to try next.
 
-*Example insights* (illustrative, from a sample journal):
-- "Trades taken within an hour of a loss: −14R this quarter."
-- "3-touch continuations at value areas: +22R. Your strongest setup."
-- "You skipped 4 setups that broke your rules. 3 of them would have lost."
+*Questions you can ask your journal* (no example results; Proof never markets outcomes it hasn't measured for you):
+- "How do my trades do in the hour after a loss?"
+- "Which setup makes me the most?"
+- "Do I do better when I follow my plan?"
 
 ---
 
