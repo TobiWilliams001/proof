@@ -6,7 +6,7 @@
   max-width: 460px;
 }
 .input {
-  height: 52px;
+  height: 48px;
   padding: 0 18px;
   border-radius: 999px;
   border: 1px solid var(--line-2);
@@ -21,7 +21,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 52px;
+  height: 48px;
   padding: 0 22px;
   border-radius: 999px;
   background: var(--ink);
@@ -54,9 +54,9 @@
     box-shadow: var(--shadow-2);
   }
   .form:focus-within { border-color: var(--accent-line); box-shadow: var(--shadow-2), 0 0 0 4px var(--accent-soft); }
-  .input { flex: 1; min-width: 0; height: 46px; border: 0; background: transparent; }
+  .input { flex: 1; min-width: 0; height: 44px; border: 0; background: transparent; }
   .input:focus { box-shadow: none; }
-  .btn { height: 46px; }
+  .btn { height: 44px; }
   .inverted { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.16); }
   .inverted .input { background: transparent; }
 }

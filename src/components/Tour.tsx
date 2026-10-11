@@ -184,14 +184,14 @@ export function Tour() {
           </div>
         )}
 
-        <div className={s.nav}>
-          <button className={s.skip} onClick={finish}>{last ? 'Close' : 'Skip'}</button>
+        <div className="actions" style={{ marginTop: 18 }}>
+          <button className="btn btn-ghost" onClick={finish}>{last ? 'Close' : 'Skip'}</button>
           <span className="spacer" />
           {i > 0 && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setI(i - 1)}>Back</button>
+            <button className="btn btn-soft" onClick={() => setI(i - 1)}>Back</button>
           )}
           {!last && (
-            <button className="btn btn-primary btn-sm" onClick={() => setI(i + 1)} autoFocus>
+            <button className="btn btn-primary" onClick={() => setI(i + 1)} autoFocus>
               {i === 0 ? 'Show me' : 'Next'}
             </button>
           )}

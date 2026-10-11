@@ -243,13 +243,15 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 
 /* ── Buttons ──────────────────────────────────────────────── */
 .btn {
-  --h: 44px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  --h: 40px;
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   height: var(--h);
-  padding: 0 18px;
+  padding: 0 16px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 550;
+  line-height: 1;
   white-space: nowrap;
   transition: transform 0.15s var(--ease), background 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.2s;
   -webkit-tap-highlight-color: transparent;
@@ -265,9 +267,24 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 .btn-ghost { color: var(--ink-2); }
 .btn-ghost:hover:not(:disabled) { color: var(--ink); background: var(--surface-2); }
 .btn-danger { background: var(--neg-soft); color: var(--neg); }
-.btn-sm { --h: 34px; padding: 0 13px; font-size: 13px; }
+.btn svg { flex: none; }
+.btn-sm { --h: 32px; padding: 0 12px; font-size: 13px; gap: 5px; }
+.btn-lg { --h: 48px; padding: 0 22px; font-size: 15px; }
 .btn-icon { width: var(--h); padding: 0; }
 .btn-block { width: 100%; }
+
+/*
+ * Action rows. Phones: buttons share the row evenly (ghost/text actions keep
+ * their natural width), so nothing wraps awkwardly. Larger screens: natural
+ * widths, aligned right. The primary action is always last.
+ */
+.actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.actions > .spacer { flex: 1; }
+@media (max-width: 599px) {
+  .actions > .spacer { display: none; }
+  .actions > .btn:not(.btn-ghost):not(.btn-icon) { flex: 1 1 0; min-width: 0; }
+  .actions > .btn-ghost { flex: 0 0 auto; }
+}
 
 /* ── Chips ────────────────────────────────────────────────── */
 .chip {
@@ -465,12 +482,16 @@ button.list-item:hover, a.list-item:hover { background: var(--surface-2); }
 
 /* Touch screens: every control gets at least a 44px target (brief: accessibility). */
 @media (pointer: coarse) {
-  .btn-sm { --h: 44px; }
-  .btn-icon.btn-sm { --h: 44px; }
+  /* Buttons keep their compact look; an invisible margin brings every tap area to 44px. */
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: min(0px, calc((var(--h) - 44px) / 2));
+  }
   .seg button { height: 40px; min-width: 44px; }
   .chip { height: 36px; }
   .chip-sm { height: 32px; }
-  button.chip, .seg button, .btn-sm { position: relative; }
+  button.chip, .seg button { position: relative; }
   /* Extend the hit area beyond the visual edge where the visual must stay small. */
   button.chip::after, a.chip::after {
     content: '';

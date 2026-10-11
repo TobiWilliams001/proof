@@ -82,11 +82,11 @@ export function CsvImport({ onImport }: { onImport: (t: Trade[]) => number }) {
           {preview.trades.length} ready{preview.skipped ? ` · ${preview.skipped} skipped (missing symbol, time or P&L)` : ''}
         </span>
       </div>
-      <div className="row">
-        <button className="btn btn-ghost btn-sm" onClick={() => setRows(null)}>Cancel</button>
+      <div className="actions">
+        <button className="btn btn-ghost" onClick={() => setRows(null)}>Cancel</button>
         <span className="spacer" />
         <button
-          className="btn btn-primary btn-sm"
+          className="btn btn-primary"
           disabled={!preview.trades.length}
           onClick={() => {
             const added = onImport(preview.trades);

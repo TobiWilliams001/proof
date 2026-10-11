@@ -363,9 +363,9 @@ export function Composer({
           )}
         </div>
 
-        <div className={s.actions}>
+        <div className="actions" style={{ marginTop: 14 }}>
           <button
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost"
             onClick={() => {
               reqId.current++;
               setRefining(false);
@@ -375,10 +375,10 @@ export function Composer({
             Edit text
           </button>
           <span className="spacer" />
-          <button className="btn btn-soft btn-sm" onClick={() => commit(draft, { asWritten: true })}>
+          <button className="btn btn-soft" onClick={() => commit(draft, { asWritten: true })}>
             Keep as written
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => commit(draft)}>
+          <button className="btn btn-primary" onClick={() => commit(draft)}>
             <Check size={15} /> Save
           </button>
         </div>
