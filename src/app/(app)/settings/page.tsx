@@ -1,9 +1,11 @@
 'use client';
 
-import { Calculator, ChevronRight, Download, Lock, Sparkles, Trash2 } from 'lucide-react';
+import { Calculator, ChevronRight, Compass, Download, Lock, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { CsvImport } from '@/components/CsvImport';
 import { SyncAccounts } from '@/components/SyncAccounts';
+import { InstallCard } from '@/components/InstallCard';
+import { startTour } from '@/components/Tour';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Reveal } from '@/components/motion';
 import { typicalJournalTime } from '@/lib/metrics';
@@ -76,7 +78,13 @@ export default function SettingsPage() {
 
       <Reveal className="section">
         <h2 className="section-title" style={{ marginBottom: 12 }}>Tools</h2>
+        <div style={{ marginBottom: 12 }}><InstallCard /></div>
         <div className="list">
+          <button className="list-item" onClick={startTour}>
+            <Compass size={17} className="faint" />
+            <span style={{ flex: 1 }}>Take the tour again</span>
+            <ChevronRight size={16} className="faint" />
+          </button>
           <Link href="/calculator" className="list-item">
             <Calculator size={17} className="faint" />
             <span style={{ flex: 1 }}>Position size calculator</span>
@@ -122,7 +130,7 @@ export default function SettingsPage() {
         </div>
         <p className="row faint" style={{ fontSize: 12.5, margin: '12px 4px 0', alignItems: 'flex-start' }}>
           <Lock size={13} style={{ marginTop: 3, flex: 'none' }} />
-          Your journal currently lives only in this browser. Proof never stores voice recordings — dictation uses your browser’s built-in speech recognition and only the text is kept.
+          Your journal currently lives only in this browser. Proof never keeps recordings of your voice. Only the words are saved.
         </p>
       </Reveal>
     </div>

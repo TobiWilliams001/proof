@@ -50,7 +50,7 @@ export default function JournalPage() {
     return [...opened, ...closed].slice(0, 3);
   }, [data, now]);
 
-  // At the start of the week the review is already waiting — the AI speaks first.
+  // At the start of the week the review is already waiting, the AI speaks first.
   const weekReady = useMemo(() => {
     const d = new Date(now);
     const dow = d.getDay(); // Sun 0, Mon 1
@@ -110,14 +110,14 @@ export default function JournalPage() {
 
       {ready && data.trades.length > 0 && (
         <motion.div className={s.glance} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04, duration: 0.45 }}>
-          <Glance label="Today" value={glance.today.count ? fmt.r(glance.today.totalR) : '—'} tone={glance.today.totalR} sub={`${glance.today.count} trade${glance.today.count === 1 ? '' : 's'}`} />
-          <Glance label="This week" value={glance.week.count ? fmt.r(glance.week.totalR) : '—'} tone={glance.week.totalR} sub={glance.week.count ? `${fmt.pct(glance.week.winRate)} win rate` : 'no trades yet'} />
+          <Glance label="Today" value={glance.today.count ? fmt.r(glance.today.totalR) : 'None'} tone={glance.today.totalR} sub={`${glance.today.count} trade${glance.today.count === 1 ? '' : 's'}`} />
+          <Glance label="This week" value={glance.week.count ? fmt.r(glance.week.totalR) : 'None'} tone={glance.week.totalR} sub={glance.week.count ? `${fmt.pct(glance.week.winRate)} win rate` : 'no trades yet'} />
           <Glance label="Notes today" value={String(glance.notesToday)} sub={awaiting.length ? `${awaiting.length} trade${awaiting.length === 1 ? '' : 's'} waiting` : 'all caught up'} />
         </motion.div>
       )}
 
       {awaiting.length > 0 && (
-        <section className={`${s.prompts}`} aria-label="Trades waiting for a note">
+        <section className={`${s.prompts}`} aria-label="Trades waiting for a note" data-tour="prompts">
           <AnimatePresence initial={false}>
           {awaiting.map((t) => (
             <motion.button key={t.id} className={s.prompt} data-open={isOpen(t) || undefined} onClick={() => setPrompted(t)} {...listItem} whileTap={{ scale: 0.985 }}>
@@ -157,7 +157,7 @@ export default function JournalPage() {
       )}
 
       {/* The one primary action: docked where the thumb is on phones, inline on desktop. */}
-      <motion.div className={s.dock} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.5 }}>
+      <motion.div className={s.dock} data-tour="composer" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.5 }}>
         <Composer docked />
       </motion.div>
 
@@ -178,8 +178,8 @@ export default function JournalPage() {
             <motion.div variants={stagger.child}><Link href="/settings#accounts" className={s.step}>
               <span className={s.stepIcon}><PlugZap size={18} /></span>
               <span>
-                <strong>Bring in your trades</strong>
-                <span className="faint">Import your platform’s history file. Live sync is next.</span>
+                <strong>Connect MetaTrader</strong>
+                <span className="faint">Your trades come in on their own, past and future.</span>
               </span>
               <ArrowRight size={16} className="faint" />
             </Link></motion.div>
@@ -272,18 +272,18 @@ export default function JournalPage() {
           <>
             {isOpen(prompted) ? (
               <div className={s.tradeFacts}>
-                <Fact label="Entry" value={String(prompted.entry || '—')} />
-                <Fact label="Stop" value={prompted.stop != null ? String(prompted.stop) : '—'} />
+                <Fact label="Entry" value={String(prompted.entry || 'Not set')} />
+                <Fact label="Stop" value={prompted.stop != null ? String(prompted.stop) : 'Not set'} />
                 <Fact label="Opened" value={fmt.time(prompted.openedAt)} />
-                <Fact label="Setup" value={prompted.setup ?? '—'} />
+                <Fact label="Setup" value={prompted.setup ?? 'None'} />
               </div>
             ) : (
               <>
                 <div className={s.tradeFacts}>
-                  <Fact label="Result" value={prompted.r != null ? fmt.r(prompted.r) : '—'} tone={(prompted.r ?? prompted.pnl) >= 0 ? 'pos' : 'neg'} />
+                  <Fact label="Result" value={prompted.r != null ? fmt.r(prompted.r) : 'No R'} tone={(prompted.r ?? prompted.pnl) >= 0 ? 'pos' : 'neg'} />
                   <Fact label="P&L" value={fmt.pnl(prompted.pnl)} />
                   <Fact label="Closed" value={fmt.time(prompted.closedAt)} />
-                  <Fact label="Setup" value={prompted.setup ?? '—'} />
+                  <Fact label="Setup" value={prompted.setup ?? 'None'} />
                 </div>
                 {/* Plan and outcome, side by side. */}
                 {(() => {
@@ -318,7 +318,7 @@ function Glance({ label, value, sub, tone }: { label: string; value: string; sub
   return (
     <div className={s.glanceItem}>
       <div className="stat-label">{label}</div>
-      <div className={`num ${s.glanceValue} ${tone == null || value === '—' ? '' : tone >= 0 ? 'pos' : 'neg'}`}>{value}</div>
+      <div className={`num ${s.glanceValue} ${tone == null || value === 'None' ? '' : tone >= 0 ? 'pos' : 'neg'}`}>{value}</div>
       <div className="faint" style={{ fontSize: 11.5 }}>{sub}</div>
     </div>
   );

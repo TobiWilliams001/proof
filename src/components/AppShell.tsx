@@ -10,6 +10,7 @@ import { useAutoSync } from '@/lib/sync/useAutoSync';
 import { Logo } from './Logo';
 import { MotionRoot, SPRING } from './motion';
 import { ThemeToggle } from './ThemeSwitch';
+import { Tour } from './Tour';
 import s from './AppShell.module.css';
 
 const PRIMARY = [
@@ -46,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             item === null ? (
               <div key="sep" className={s.railSep} />
             ) : (
-              <Link key={item.href} href={item.href} className={s.railItem} aria-current={isActive(item.href) ? 'page' : undefined}>
+              <Link key={item.href} href={item.href} className={s.railItem} aria-current={isActive(item.href) ? 'page' : undefined} data-tour={`nav-${item.label.toLowerCase()}`}>
                 {isActive(item.href) && <motion.span layoutId="rail-pill" className={s.railPill} transition={SPRING} />}
                 <item.icon size={18} strokeWidth={1.8} /> <span className={s.label}>{item.label}</span>
               </Link>
@@ -94,10 +95,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </motion.div>
       </main>
 
+      <Tour />
+
       {/* Mobile tab bar */}
       <nav className={s.tabs} aria-label="Main">
         {PRIMARY.map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} className={s.tab} aria-current={isActive(href) ? 'page' : undefined}>
+          <Link key={href} href={href} className={s.tab} aria-current={isActive(href) ? 'page' : undefined} data-tour={`nav-${label.toLowerCase()}`}>
             {isActive(href) && <motion.span layoutId="tab-pill" className={s.tabPill} transition={SPRING} />}
             <motion.span whileTap={{ scale: 0.88 }} className={s.tabInner}>
               <Icon size={21} strokeWidth={isActive(href) ? 2.1 : 1.7} />
