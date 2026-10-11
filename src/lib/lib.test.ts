@@ -4,7 +4,7 @@ import { guessMapping, parseCSV, parseDate, rowsToTrades } from './csv';
 import { parsePeriod, startOfWeek, ymd } from './dates';
 import { buildDemo, DEMO_PLAYBOOK } from './demo';
 import { buildWeeklyReview } from './review';
-import { computeStats, outcomeOf, rDistribution } from './stats';
+import { computeStats, confidenceFor, outcomeOf, rDistribution, riskStats } from './stats';
 import { migrateLegacy } from './storage';
 import { constrainToPlaybook, detectKind, detectR, detectSymbol, structureNote } from './structure';
 import { sizeCrypto } from './calculator';
@@ -322,5 +322,37 @@ describe('legacy migration', () => {
     ]);
     expect(trades[0].symbol).toBe('BTCUSDT');
     expect(entries[0]).toMatchObject({ tradeId: trades[0].id, text: 'clean break' });
+  });
+});
+
+describe('quant basics (worked by hand)', () => {
+  // P&L sequence: +200, −100, −100, −100, +150, +300 → equity 200, 100, 0, −100, 50, 350
+  const seq = [200, -100, -100, -100, 150, 300].map((pnl, i) =>
+    t({ id: `q${i}`, pnl, r: pnl / 100, closedAt: new Date(2026, 9, 1 + i, 10).toISOString() }),
+  );
+  it('computes expectancy, drawdown, streak and recovery', () => {
+    const r = riskStats(seq);
+    expect(r.expectancyMoney).toBe(58.33); // 350 / 6
+    expect(r.expectancyR).toBe(0.58);
+    expect(r.maxDrawdownMoney).toBe(300); // peak 200 → low −100
+    expect(r.maxDrawdownR).toBe(3);
+    expect(r.longestLosingStreak).toBe(3);
+    expect(r.streakTradeIds).toEqual(['q1', 'q2', 'q3']);
+    expect(r.recoveryTrades).toBe(2); // back above 200 two trades after the low
+    expect(r.drawdownTradeIds).toEqual(['q1', 'q2', 'q3']);
+  });
+  it('says not recovered when the account is still below its high', () => {
+    const r = riskStats(seq.slice(0, 5));
+    expect(r.recovered).toBe(false);
+    expect(r.recoveryTrades).toBeNull();
+  });
+  it('grades confidence by sample size and stability', () => {
+    const mk = (n: number, r: (i: number) => number) => Array.from({ length: n }, (_, i) => t({ id: `c${i}`, r: r(i), pnl: r(i) * 100, closedAt: new Date(2026, 0, 1 + i).toISOString() }));
+    const avg = (h: Trade[]) => h.reduce((s, x) => s + (x.r ?? 0), 0);
+    expect(confidenceFor(mk(4, () => 1))).toBe('not enough data');
+    expect(confidenceFor(mk(7, () => 1))).toBe('observation');
+    expect(confidenceFor(mk(20, () => 1))).toBe('possible pattern');
+    expect(confidenceFor(mk(40, () => 1), avg)).toBe('consistent pattern');
+    expect(confidenceFor(mk(40, (i) => (i < 20 ? 2 : -1)), avg)).toBe('possible pattern'); // flips half-way
   });
 });

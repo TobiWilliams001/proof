@@ -532,3 +532,18 @@ html.splash body { overflow: hidden; }
 html.splash-out #splash { opacity: 0; pointer-events: none; }
 @keyframes splashIn { from { opacity: 0; transform: scale(0.96); } }
 @media (prefers-reduced-motion: reduce) { html.splash #splash span { animation: none; } }
+
+/* A slim row of secondary numbers under a stat grid. */
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 8px;
+  padding: 10px 4px;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.mini-stats > div { display: grid; gap: 2px; padding: 0 12px; min-width: 0; }
+.mini-stats > div + div { border-left: 1px solid var(--line); }
+.mini-stats span { font-size: var(--text-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-stats strong { font-size: var(--text-md); font-weight: var(--weight-strong); white-space: nowrap; }

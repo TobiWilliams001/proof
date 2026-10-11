@@ -117,3 +117,110 @@ export function rFromPrices(side: Side, entry: number, stop: number | undefined,
   const move = side === 'long' ? exit - entry : entry - exit;
   return round(move / risk, 2);
 }
+
+/**
+ * How much to trust a finding, in words a trader can use. Based on how many
+ * trades it rests on, and for the top level, whether it holds in both the older
+ * and newer half of those trades (so one hot streak can't pass as a pattern).
+ */
+export type Confidence = 'not enough data' | 'observation' | 'possible pattern' | 'consistent pattern';
+
+export function confidenceFor(trades: Trade[], direction?: (half: Trade[]) => number): Confidence {
+  const closed = closedOnly(trades).sort((a, b) => a.closedAt.localeCompare(b.closedAt));
+  const n = closed.length;
+  if (n < 5) return 'not enough data';
+  if (n < 10) return 'observation';
+  if (n < 30) return 'possible pattern';
+  if (!direction) return 'consistent pattern';
+  const mid = Math.floor(n / 2);
+  const a = direction(closed.slice(0, mid));
+  const b = direction(closed.slice(mid));
+  return Math.sign(a) === Math.sign(b) && a !== 0 ? 'consistent pattern' : 'possible pattern';
+}
+
+export interface RiskStats {
+  /** Average result per trade: R over trades with known R, money over all trades. */
+  expectancyR: number | null;
+  expectancyMoney: number | null;
+  /** Largest fall from a running high, in R (trades with known R) and in money. */
+  maxDrawdownR: number;
+  maxDrawdownMoney: number;
+  /** Most losses in a row (a breakeven ends a run). */
+  longestLosingStreak: number;
+  /** Trades it took to climb back to the old high after the biggest drawdown; null if not yet. */
+  recoveryTrades: number | null;
+  recovered: boolean;
+  /** Trades in the biggest drawdown, from the high before it to the low. */
+  drawdownTradeIds: string[];
+  streakTradeIds: string[];
+}
+
+export function riskStats(all: Trade[]): RiskStats {
+  const ts = closedOnly(all).sort((a, b) => a.closedAt.localeCompare(b.closedAt));
+  const n = ts.length;
+  const withR = ts.filter((t) => t.r != null);
+
+  // Drawdown measured on the money curve, the one a trader's account actually lives on.
+  let equity = 0;
+  let peak = 0;
+  let peakIdx = -1;
+  let maxDD = 0;
+  let ddFrom = -1;
+  let ddTo = -1;
+  ts.forEach((t, i) => {
+    equity += t.pnl;
+    if (equity > peak) {
+      peak = equity;
+      peakIdx = i;
+    } else if (peak - equity > maxDD) {
+      maxDD = peak - equity;
+      ddFrom = peakIdx;
+      ddTo = i;
+    }
+  });
+
+  // Same idea in R, over trades with a known R.
+  let eqR = 0;
+  let peakR = 0;
+  let maxDDR = 0;
+  for (const t of withR) {
+    eqR += t.r!;
+    peakR = Math.max(peakR, eqR);
+    maxDDR = Math.max(maxDDR, peakR - eqR);
+  }
+
+  // Recovery: first trade after the low where equity is back at the old high.
+  let recoveryTrades: number | null = null;
+  if (ddTo >= 0) {
+    const target = ts.slice(0, ddFrom + 1).reduce((s, t) => s + t.pnl, 0);
+    let e = ts.slice(0, ddTo + 1).reduce((s, t) => s + t.pnl, 0);
+    for (let j = ddTo + 1; j < n; j++) {
+      e += ts[j].pnl;
+      if (e >= target - 1e-9) {
+        recoveryTrades = j - ddTo;
+        break;
+      }
+    }
+  }
+
+  let run: string[] = [];
+  let best: string[] = [];
+  for (const t of ts) {
+    if (outcomeOf(t) === 'loss') {
+      run = [...run, t.id];
+      if (run.length > best.length) best = run;
+    } else run = [];
+  }
+
+  return {
+    expectancyR: withR.length ? round(withR.reduce((s, t) => s + t.r!, 0) / withR.length, 2) : null,
+    expectancyMoney: n ? round(ts.reduce((s, t) => s + t.pnl, 0) / n, 2) : null,
+    maxDrawdownR: round(maxDDR, 2),
+    maxDrawdownMoney: round(maxDD, 2),
+    longestLosingStreak: best.length,
+    recoveryTrades,
+    recovered: maxDD === 0 || recoveryTrades != null,
+    drawdownTradeIds: ddTo >= 0 ? ts.slice(ddFrom + 1, ddTo + 1).map((t) => t.id) : [],
+    streakTradeIds: best,
+  };
+}

@@ -98,3 +98,5 @@
   font-weight: var(--weight-strong);
   color: var(--ink);
 }
+.level { display: block; margin-top: 2px; font-size: var(--text-xs); color: var(--ink-3); }
+.level::first-letter { text-transform: uppercase; }

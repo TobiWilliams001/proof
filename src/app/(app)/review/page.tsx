@@ -313,6 +313,7 @@ function CoachNote({ lines, tradesById, entries }: { lines: CoachLine[]; tradesB
                   </button>
                 </>
               )}
+              {l.confidence && <span className={s.level}>{l.confidence}</span>}
             </p>
           );
         })}

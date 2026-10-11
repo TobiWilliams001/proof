@@ -1,7 +1,7 @@
 import { addDays, startOfWeek } from './dates';
 import { fmt } from './format';
 import { matchTags } from './structure';
-import { computeStats, groupStats, outcomeOf } from './stats';
+import { computeStats, confidenceFor, groupStats, outcomeOf, type Confidence } from './stats';
 import { congruence } from './tools';
 import { closedOnly, isOpen, type Entry, type Playbook, type Trade } from './types';
 
@@ -16,7 +16,13 @@ export interface CoachLine {
   tradeIds: string[];
   entryIds: string[];
   kind: 'summary' | 'pattern' | 'compare' | 'discipline' | 'missed' | 'suggestion';
+  /** How much the finding can be trusted, from how many trades it rests on. */
+  confidence?: Confidence;
 }
+
+const avgR = (ts: Trade[]) => ts.reduce((s, t) => s + (t.r ?? 0), 0);
+/** Proof suggests experiments, never orders, and only on findings worth testing. */
+const worthTesting = (c?: Confidence) => !!c && c !== 'not enough data';
 
 const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const spell = (n: number) => (n === 2 ? 'Both' : `All ${n}`);
@@ -84,7 +90,9 @@ export function buildCoachNote(
     const ids = theme.entryIds;
     const tradeIds = [...new Set(lossNotes.filter((e) => ids.includes(e.id)).map((e) => e.tradeId!))];
     const all = tradeIds.length === losses.length;
+    const confidence = confidenceFor(trades.filter((t) => tradeIds.includes(t.id)));
     lines.push({
+      confidence,
       kind: 'pattern',
       text: all
         ? `${spell(tradeIds.length)} losses were tagged “${theme.word}”. You noted it yourself after each one.`
@@ -92,7 +100,14 @@ export function buildCoachNote(
       tradeIds,
       entryIds: ids,
     });
-    suggestion = { kind: 'suggestion', text: `Next week, check for “${theme.word}” before you enter.`, tradeIds, entryIds: ids };
+    if (worthTesting(confidence)) {
+      suggestion = {
+        kind: 'suggestion',
+        text: `Try your next 10 trades checking for “${theme.word}” before you enter, and compare.`,
+        tradeIds,
+        entryIds: ids,
+      };
+    }
   }
 
   // 3, Setups compared over a longer window, so one week's noise doesn't decide it.
@@ -104,18 +119,23 @@ export function buildCoachNote(
     const worst = ranked[ranked.length - 1];
     const gap = best.stats.avgR! - worst.stats.avgR!;
     if (gap >= 0.5) {
+      // As sure as the smaller of the two samples, and only if the gap holds over time.
+      const confidence = confidenceFor(worst.trades.length < best.trades.length ? worst.trades : best.trades, avgR);
       lines.push({
+        confidence,
         kind: 'compare',
         text: `Over the last four weeks, ${worst.name} has trailed ${best.name} by ${gap.toFixed(1)}R a trade on average (${fmt.r(worst.stats.avgR)} vs ${fmt.r(best.stats.avgR)}).`,
         tradeIds: [...best.trades, ...worst.trades].map((t) => t.id),
         entryIds: [],
       });
-      suggestion ??= {
-        kind: 'suggestion',
-        text: `Consider favouring ${best.name} until the pattern shifts.`,
-        tradeIds: best.trades.map((t) => t.id),
-        entryIds: [],
-      };
+      if (worthTesting(confidence)) {
+        suggestion ??= {
+          kind: 'suggestion',
+          text: `${worst.name}: ${worst.stats.wins} of ${worst.stats.count} won, ${fmt.r(worst.stats.totalR)}. Try your next 10 trades without it and compare.`,
+          tradeIds: worst.trades.map((t) => t.id),
+          entryIds: [],
+        };
+      }
     }
   }
 
@@ -131,11 +151,17 @@ export function buildCoachNote(
     if (broke.length && brokeR.rCount && keptR.rCount) {
       // Average against average, so the comparison is fair.
       text += ` When you didn’t, you averaged ${fmt.r(brokeR.avgR)} a trade; when you did, ${fmt.r(keptR.avgR)}.`;
-      if (keptR.avgR != null && brokeR.avgR != null && keptR.avgR > brokeR.avgR) {
-        suggestion ??= { kind: 'suggestion', text: 'Your plan is paying you. That’s the habit to protect next week.', tradeIds: kept.map((t) => t.id), entryIds: [] };
-      }
     }
-    lines.push({ kind: 'discipline', text, tradeIds: answered.map((t) => t.id), entryIds: [] });
+    const confidence = confidenceFor(answered);
+    if (keptR.avgR != null && brokeR.avgR != null && keptR.avgR > brokeR.avgR && broke.length && worthTesting(confidence)) {
+      suggestion ??= {
+        kind: 'suggestion',
+        text: 'Try your next 10 trades taking only the ones that fit your plan, and compare.',
+        tradeIds: answered.map((t) => t.id),
+        entryIds: [],
+      };
+    }
+    lines.push({ kind: 'discipline', text, tradeIds: answered.map((t) => t.id), entryIds: [], confidence });
   }
 
   // 5, Trades not taken.

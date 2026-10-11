@@ -105,3 +105,4 @@
 
 .voiceHelp { position: fixed; z-index: 26; left: 12px; right: 12px; bottom: calc(var(--nav-h) + 84px + env(safe-area-inset-bottom)); }
 @media (min-width: 900px) { .voiceHelp { left: calc(232px + 40px); right: 40px; bottom: 92px; max-width: 680px; margin: 0 auto; } }
+.level { margin-top: 6px; font-size: var(--text-xs); color: var(--ink-3); }

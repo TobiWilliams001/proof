@@ -10,7 +10,7 @@ import { EntryItem, TradeItem } from '@/components/Items';
 import { Sheet } from '@/components/Sheet';
 import { TradeForm } from '@/components/TradeForm';
 import { fmt } from '@/lib/format';
-import { computeStats, groupStats, rFromPrices, type GroupKey } from '@/lib/stats';
+import { computeStats, groupStats, rFromPrices, riskStats, type GroupKey } from '@/lib/stats';
 import { Reveal } from '@/components/motion';
 import { useJournal } from '@/lib/store';
 import { useNow } from '@/lib/useNow';
@@ -58,6 +58,7 @@ export default function TradesPage() {
   }, [ready, data.trades]);
 
   const stats = useMemo(() => computeStats(trades), [trades]);
+  const risk = useMemo(() => riskStats(trades), [trades]);
   const groups = useMemo(() => groupStats(trades, by), [trades, by]);
   const notesByTrade = useMemo(() => {
     const m = new Map<string, number>();
@@ -132,14 +133,34 @@ export default function TradesPage() {
               <div className="stat-value">{stats.count ? fmt.pct(stats.winRate) : 'None yet'}</div>
             </div>
             <div className="stat">
-              <div className="stat-label">Avg R</div>
-              <div className="stat-value">{fmt.r(stats.avgR)}</div>
+              <div className="stat-label">Per trade</div>
+              <div className={`stat-value ${(metric === 'r' ? risk.expectancyR ?? 0 : risk.expectancyMoney ?? 0) >= 0 ? 'pos' : 'neg'}`}>
+                {metric === 'r' ? fmt.r(risk.expectancyR) : fmt.pnl(risk.expectancyMoney ?? 0)}
+              </div>
             </div>
             <div className="stat">
               <div className="stat-label">Trades</div>
               <div className="stat-value">{stats.count}</div>
             </div>
           </div>
+
+          {/* The bad runs, in one slim strip: how deep it got and how long it lasted. */}
+          {stats.count > 0 && (
+            <div className="mini-stats">
+              <div>
+                <span>Drawdown</span>
+                <strong className="num">{metric === 'r' ? `${risk.maxDrawdownR.toFixed(1)}R` : fmt.money(risk.maxDrawdownMoney)}</strong>
+              </div>
+              <div>
+                <span>Losses in a row</span>
+                <strong className="num">{risk.longestLosingStreak}</strong>
+              </div>
+              <div>
+                <span>Recovery</span>
+                <strong>{risk.maxDrawdownMoney === 0 ? 'None needed' : risk.recovered ? `${risk.recoveryTrades} trades` : 'Not yet'}</strong>
+              </div>
+            </div>
+          )}
 
           <Reveal className="section">
             <h2 className="section-title" style={{ marginBottom: 12 }}>How your {metric === 'r' ? 'R' : 'account'} has grown, {rangeLabel}</h2>

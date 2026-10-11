@@ -137,6 +137,11 @@ function TurnView({ turn }: { turn: Turn }) {
       </motion.div>
       <motion.div className={s.a} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.12 }}>
         <p className={s.answer}>{a.text}</p>
+        {a.confidence && (
+          <p className={s.level}>
+            {a.confidence.charAt(0).toUpperCase() + a.confidence.slice(1)} · {a.basis} trade{a.basis === 1 ? '' : 's'}
+          </p>
+        )}
 
         {a.highlights.length > 0 && (
           <div className={s.highlights}>

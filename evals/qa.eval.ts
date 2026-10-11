@@ -43,6 +43,12 @@ const CASES: Case[] = [
   { q: 'How do I do when I log tired', contains: ['−1.0R'], trades: ['t2', 't6', 't9'] },
   // Both early-entry notes are from this week, so "last week" must find none, and must not search for "last week".
   { q: 'What did I write about early entries last week?', contains: ["haven't written about “early entries”"], entries: [], unsure: true },
+  // Quant basics, worked by hand from the fixture (oldest first):
+  // P&L −100, +200, −150, 0, +250, −100, +150, +300, −100, −50 → net +400 over 10.
+  { q: "What's my expectancy?", contains: ['+0.4R', '+$40', '10 trades'], trades: ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10'] },
+  // Equity peaks at +100 after t8, falls to −50 after t9: $150 (R: +1 → −0.5 = 1.5R). Back above +100 two trades later.
+  { q: "What's my biggest drawdown?", contains: ['$150', '(1.5R)', 'back at your high 2 trades later'], trades: ['t9'] },
+  { q: "What's my longest losing streak?", contains: ['2 trades in a row'], trades: ['t5', 't6'] },
   // Every pair is flat or up, so the "worst" answer must not claim it costs money.
   { q: 'Which pair costs me the most?', contains: ['makes you the least R'] },
 ];

@@ -1,16 +1,17 @@
 import { parsePeriod } from './dates';
 import { fmt } from './format';
-import type { GroupKey, Stats } from './stats';
+import { confidenceFor, riskStats, type Confidence, type GroupKey, type Stats } from './stats';
 import { detectSymbol, matchSetups } from './structure';
 import {
   getGroupStats,
   getStats,
+  listTrades,
   searchNotes,
   type JournalContext,
   type ToolName,
   type TradeFilter,
 } from './tools';
-import type { Playbook, Session } from './types';
+import type { Playbook, Session, Trade } from './types';
 
 /**
  * Ask your journal: question → typed tool calls → computed answer.
@@ -18,7 +19,8 @@ import type { Playbook, Session } from './types';
  * tool outputs, so every number shown can be traced to the cited trades.
  */
 
-export type Metric = 'winRate' | 'pnl' | 'avgR' | 'totalR' | 'count';
+export type Metric = 'winRate' | 'pnl' | 'avgR' | 'totalR' | 'count' | 'expectancy' | 'drawdown' | 'streak';
+const RISK_METRICS = new Set<Metric>(['expectancy', 'drawdown', 'streak']);
 
 export type Intent =
   | { type: 'stat'; metric: Metric; filter: TradeFilter; ofBest?: GroupKey }
@@ -36,11 +38,17 @@ export interface Answer {
   toolCalls: { tool: ToolName; args: unknown }[];
   scope: string;
   unsure?: boolean;
+  /** How much to trust it, and how many trades it rests on. */
+  confidence?: Confidence;
+  basis?: number;
 }
 
 const METRICS: [Metric, RegExp][] = [
+  ['drawdown', /\b(drawdowns?|draw downs?|biggest drop|deepest drop|worst run|recover(y|ed)?)\b/],
+  ['streak', /\b(losing streaks?|losses in a row|losing runs?|streaks?)\b/],
+  ['expectancy', /\b(expectancy|expect per trade|edge per trade|make per trade|average per trade)\b/],
   ['winRate', /\b(win ?rate|hit rate|strike rate|win %|win percentage|how often do i win)\b/],
-  ['avgR', /\b(average r|avg r|expectancy|r per trade|average return)\b/],
+  ['avgR', /\b(average r|avg r|r per trade|average return)\b/],
   ['totalR', /\b(total r|how much r|most r|r made|net r)\b/],
   ['pnl', /\b(p&l|p ?n ?l|profit|made|lost|money|dollars?|net)\b/],
   ['count', /\b(how many|number of|count)\b/],
@@ -179,6 +187,7 @@ function metricValue(m: Metric, s: Stats): string {
     case 'avgR': return fmt.r(s.avgR);
     case 'totalR': return fmt.r(s.totalR);
     case 'count': return String(s.count);
+    default: return '';
   }
 }
 
@@ -188,6 +197,9 @@ const METRIC_LABEL: Record<Metric, string> = {
   avgR: 'average R',
   totalR: 'total R',
   count: 'trade count',
+  expectancy: 'expectancy',
+  drawdown: 'biggest drawdown',
+  streak: 'longest losing streak',
 };
 
 function statHighlights(s: Stats): Answer['highlights'] {
@@ -242,6 +254,53 @@ export function answerQuestion(
       if (!stats.count) {
         return { text: `No trades match ${scope}.`, highlights: [], tradeIds: [], entryIds: [], toolCalls, scope, unsure: true };
       }
+      const matched = listTrades(ctx, filter);
+      // Confidence belongs to estimates (rates, averages), not to facts like a total or a drawdown.
+      const sumR = (h: Trade[]) => h.reduce((t, x) => t + (x.r ?? 0), 0);
+      const estimate = intent.metric === 'winRate' || intent.metric === 'avgR' || intent.metric === 'expectancy';
+      const confidence = estimate ? confidenceFor(matched, intent.metric === 'winRate' ? undefined : sumR) : undefined;
+      const where = scope === 'all trades' ? '' : ` for ${scope}`;
+
+      if (RISK_METRICS.has(intent.metric)) {
+        const risk = riskStats(matched);
+        if (intent.metric === 'expectancy') {
+          return {
+            text:
+              `On average you make ${risk.expectancyR != null ? `${fmt.r(risk.expectancyR)} and ` : ''}${fmt.pnl(risk.expectancyMoney ?? 0)} a trade${where}, ` +
+              `across ${stats.count} trade${stats.count === 1 ? '' : 's'}. ${(risk.expectancyMoney ?? 0) > 0 ? 'Over time, that’s an edge.' : 'Over time, that loses money.'}`,
+            highlights: [
+              { label: 'Per trade', value: fmt.r(risk.expectancyR), tone: (risk.expectancyR ?? 0) >= 0 ? 'pos' : 'neg' },
+              { label: 'In money', value: fmt.pnl(risk.expectancyMoney ?? 0), tone: (risk.expectancyMoney ?? 0) >= 0 ? 'pos' : 'neg' },
+              { label: 'Win rate', value: fmt.pct(stats.winRate) },
+              { label: 'Trades', value: String(stats.count) },
+            ],
+            tradeIds, entryIds: [], toolCalls, scope, confidence, basis: stats.count,
+          };
+        }
+        if (intent.metric === 'drawdown') {
+          if (!risk.maxDrawdownMoney) {
+            return { text: `You haven’t had a drawdown${where} yet. Every trade kept you at or above your high.`, highlights: [], tradeIds, entryIds: [], toolCalls, scope };
+          }
+          return {
+            text:
+              `Your biggest drawdown${where} was ${fmt.money(risk.maxDrawdownMoney)}${risk.maxDrawdownR ? ` (${risk.maxDrawdownR.toFixed(1)}R)` : ''}, over ${risk.drawdownTradeIds.length} trade${risk.drawdownTradeIds.length === 1 ? '' : 's'}. ` +
+              (risk.recovered ? `You were back at your high ${risk.recoveryTrades} trade${risk.recoveryTrades === 1 ? '' : 's'} later.` : 'You haven’t climbed back to that high yet.'),
+            highlights: [
+              { label: 'Drawdown', value: fmt.money(risk.maxDrawdownMoney), tone: 'neg' },
+              { label: 'In R', value: `${risk.maxDrawdownR.toFixed(1)}R` },
+              { label: 'Recovery', value: risk.recovered ? `${risk.recoveryTrades} trades` : 'Not yet' },
+            ],
+            tradeIds: risk.drawdownTradeIds, entryIds: [], toolCalls, scope,
+          };
+        }
+        return {
+          text: risk.longestLosingStreak
+            ? `Your longest losing streak${where} was ${risk.longestLosingStreak} trade${risk.longestLosingStreak === 1 ? '' : 's'} in a row.`
+            : `You haven’t had a losing trade${where}.`,
+          highlights: [{ label: 'Losses in a row', value: String(risk.longestLosingStreak) }],
+          tradeIds: risk.streakTradeIds, entryIds: [], toolCalls, scope,
+        };
+      }
       const detail =
         intent.metric === 'winRate'
           ? `, ${stats.wins} wins out of ${stats.count} trade${stats.count === 1 ? '' : 's'}${stats.breakeven ? ` (${stats.breakeven} breakeven)` : ''}`
@@ -250,13 +309,11 @@ export function answerQuestion(
             : intent.metric === 'pnl'
               ? ` across ${stats.count} trade${stats.count === 1 ? '' : 's'}`
               : '';
-      // Few trades can't carry a confident claim, say so rather than overstate it.
-      const hedge = stats.count < 5 ? ` That’s only ${stats.count} trade${stats.count === 1 ? '' : 's'}, so treat it as a hint, not a pattern.` : '';
       const scopeText = intent.ofBest ? `on ${filter[intent.ofBest as 'setup']}` : scope === 'all trades' ? 'overall' : `for ${scope}`;
       return {
-        text: `${prefix}Your ${METRIC_LABEL[intent.metric]} ${scopeText} is ${metricValue(intent.metric, stats)}${detail}.${hedge}`,
+        text: `${prefix}Your ${METRIC_LABEL[intent.metric]} ${scopeText} is ${metricValue(intent.metric, stats)}${detail}.`,
         highlights: statHighlights(stats),
-        tradeIds, entryIds: [], toolCalls, scope,
+        tradeIds, entryIds: [], toolCalls, scope, confidence, basis: stats.count,
       };
     }
 
@@ -289,6 +346,7 @@ export function answerQuestion(
           tone: (useR ? g.stats.totalR : g.stats.pnl) >= 0 ? 'pos' : 'neg',
         })),
         tradeIds: top.tradeIds, entryIds: [], toolCalls, scope,
+        confidence: confidenceFor(ctx.trades.filter((t) => top.tradeIds.includes(t.id))), basis: top.stats.count,
       };
     }
 
@@ -319,6 +377,7 @@ export function answerQuestion(
           { label: 'Win rate', value: fmt.pct(b.stats.winRate) },
         ],
         tradeIds: a.tradeIds, entryIds: notes.slice(0, 8).map((e) => e.id), toolCalls, scope,
+        confidence: confidenceFor(ctx.trades.filter((t) => a.tradeIds.includes(t.id))), basis: a.stats.count,
       };
     }
 
@@ -345,6 +404,9 @@ export function answerQuestion(
           { label: 'Win rate', value: fmt.pct(broke.stats.winRate) },
         ],
         tradeIds: [...broke.tradeIds, ...kept.tradeIds], entryIds: [], toolCalls, scope,
+        // As sure as the smaller side of the comparison.
+        confidence: confidenceFor(ctx.trades.filter((t) => (broke.stats.count < kept.stats.count ? broke : kept).tradeIds.includes(t.id))),
+        basis: Math.min(broke.stats.count, kept.stats.count),
       };
     }
 
