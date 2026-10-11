@@ -11,7 +11,7 @@ import { isOpen, type Entry, type JournalData, type Playbook, type QuestionLog, 
 interface JournalApi {
   data: JournalData;
   ready: boolean;
-  /** True when the last save to this device failed — nothing is lost silently. */
+  /** True when the last save to this device failed, nothing is lost silently. */
   saveFailed: boolean;
   addEntry(e: Omit<Entry, 'id' | 'createdAt'>): Entry;
   updateEntry(id: string, patch: Partial<Entry>): void;

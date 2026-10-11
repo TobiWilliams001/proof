@@ -7,7 +7,7 @@ export interface PositionResult {
   profit: number;
   rr: number;
   liqPrice?: number;
-  /** True when the stop sits beyond liquidation — you'd be wiped before it triggers. */
+  /** True when the stop sits beyond liquidation, you'd be wiped before it triggers. */
   stopBeyondLiq?: boolean;
   margin?: number;
   targetWrongSide?: boolean;

@@ -54,7 +54,7 @@ const SESSIONS: [Session, RegExp][] = [
 ];
 
 /**
- * A quoted term — but an apostrophe inside "what's" or "I'm" is not a quote, so the
+ * A quoted term, but an apostrophe inside "what's" or "I'm" is not a quote, so the
  * opening mark must start a word and the closing mark must end one.
  */
 function quoted(q: string): string | undefined {
@@ -130,7 +130,7 @@ export function parseQuestion(
     return { intent: { type: 'notes', query: query || aboutMatch[1], filter }, scope };
   }
 
-  // "How do I do when I follow my plan?" — uses the one-tap congruence answers.
+  // "How do I do when I follow my plan?", uses the one-tap congruence answers.
   if (/\b(follow(ed|ing)?|stick(ing)? to|stuck to|keep to|break|broke|breaking|ignore[ds]?)\s+(to\s+)?(my\s+|the\s+)?plans?\b/.test(q)) {
     return { intent: { type: 'planCompare', filter }, scope };
   }
@@ -154,7 +154,7 @@ export function parseQuestion(
         : undefined;
   const order = /\b(worst|least|lowest|bleed|bleeds|cost|costs|losing the most|lose the most)\b/.test(q) ? 'worst' : 'best';
 
-  // "What's my win rate on my best setup?" — resolve the best group, then stat it.
+  // "What's my win rate on my best setup?", resolve the best group, then stat it.
   if (metric && rankBy && /\b(best|worst|top)\b/.test(q) && !/\bwhich\b/.test(q)) {
     return { intent: { type: 'stat', metric, filter, ofBest: rankBy }, scope };
   }
@@ -244,13 +244,13 @@ export function answerQuestion(
       }
       const detail =
         intent.metric === 'winRate'
-          ? ` — ${stats.wins} wins out of ${stats.count} trade${stats.count === 1 ? '' : 's'}${stats.breakeven ? ` (${stats.breakeven} breakeven)` : ''}`
+          ? `, ${stats.wins} wins out of ${stats.count} trade${stats.count === 1 ? '' : 's'}${stats.breakeven ? ` (${stats.breakeven} breakeven)` : ''}`
           : intent.metric === 'avgR' || intent.metric === 'totalR'
             ? ` across ${stats.rCount} trade${stats.rCount === 1 ? '' : 's'} with a known R`
             : intent.metric === 'pnl'
               ? ` across ${stats.count} trade${stats.count === 1 ? '' : 's'}`
               : '';
-      // Few trades can't carry a confident claim — say so rather than overstate it.
+      // Few trades can't carry a confident claim, say so rather than overstate it.
       const hedge = stats.count < 5 ? ` That’s only ${stats.count} trade${stats.count === 1 ? '' : 's'}, so treat it as a hint, not a pattern.` : '';
       const scopeText = intent.ofBest ? `on ${filter[intent.ofBest as 'setup']}` : scope === 'all trades' ? 'overall' : `for ${scope}`;
       return {

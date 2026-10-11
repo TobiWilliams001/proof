@@ -1,4 +1,4 @@
-// Proof service worker — keeps the app opening on weak or no connection (brief §9).
+// Proof service worker, keeps the app opening on weak or no connection (brief §9).
 // Journal data lives in the browser, so caching the shell is enough to write offline.
 
 const VERSION = 'proof-v1';
@@ -41,7 +41,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Hashed build assets never change — serve from cache first.
+  // Hashed build assets never change, serve from cache first.
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.match(req).then(

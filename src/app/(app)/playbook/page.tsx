@@ -11,7 +11,7 @@ import type { CustomField, Playbook, PlaybookSetup } from '@/lib/types';
 import s from './playbook.module.css';
 
 const AI_ERRORS: Record<string, string> = {
-  not_configured: 'Turning a description into setups isn’t available right now. You can add them by hand below — it only takes a minute.',
+  not_configured: 'Turning a description into setups isn’t available right now. You can add them by hand below. It only takes a minute.',
   rate_limited: 'That’s taking longer than usual. Try again in a minute, or add setups by hand below.',
   offline: 'You seem to be offline. Add setups by hand below, or try again when you’re connected.',
 };
@@ -60,7 +60,7 @@ export default function PlaybookPage() {
       <header className="page-head">
         <div className="eyebrow">Your system. Not ours.</div>
         <h1 className="page-title">Playbook</h1>
-        <p className="page-sub">Proof maps every note onto these — nothing else. Change them anytime.</p>
+        <p className="page-sub">Proof sorts every note into these, and nothing else. Change them any time.</p>
       </header>
 
       <Reveal className={`${s.describe}`}>

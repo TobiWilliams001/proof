@@ -78,7 +78,7 @@ export function Composer({
   useEffect(() => {
     try {
       // Restoring per-device state after hydration: the mode preference, and any
-      // unsent draft — nothing a trader writes should be lost to a reload.
+      // unsent draft, nothing a trader writes should be lost to a reload.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (localStorage.getItem(MODE_KEY) === 'raw') setStructure(false);
       const kept = localStorage.getItem(draftKey);

@@ -82,7 +82,7 @@ describe('MT deals → trades', () => {
     expect(trades[0]).toMatchObject({ side: 'short', symbol: 'XAUUSD', pnl: 100, r: 2 });
   });
 
-  it('never uses MT4’s latest stop for R — only a stop seen when the trade opened', () => {
+  it('never uses MT4’s latest stop for R, only a stop seen when the trade opened', () => {
     const mt4 = (o: Partial<MtDeal>) => deal({ platform: 'mt4', ...o });
     const ds = [mt4({ stopLoss: 1.1 }), mt4({ type: 'DEAL_TYPE_SELL', entryType: 'DEAL_ENTRY_OUT', price: 1.11, profit: 100, time: '2026-10-06T09:00:00.000Z' })];
     expect(dealsToTrades(ds, opts).trades[0].r).toBeNull(); // stop was trailed to breakeven

@@ -17,7 +17,7 @@ function parseNum(v: string): number | null {
 }
 
 /**
- * Manual entry — a fallback for when there's no sync or history file.
+ * Manual entry, a fallback for when there's no sync or history file.
  * "Still open" records a position so its plan can be captured before the outcome.
  */
 export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t: Trade) => void }) {
@@ -33,7 +33,7 @@ export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t
   const exit = parseNum(f.exit);
   const stop = parseNum(f.stop);
   const typedR = f.r.trim() === '' ? null : parseNum(f.r);
-  // When R isn't typed, work it out from prices — but only if all three are there.
+  // When R isn't typed, work it out from prices, but only if all three are there.
   const priceR = entry != null && exit != null ? rFromPrices(f.side, entry, stop ?? undefined, exit) : null;
   const r = typedR ?? priceR;
   const when = new Date(f.when);

@@ -104,7 +104,7 @@ export function TradeItem({
       ) : (
       <span className={s.tradeNums}>
         <span className={`num ${s.r} ${o === 'win' ? 'pos' : o === 'loss' ? 'neg' : 'faint'}`}>
-          {trade.r != null ? fmt.r(trade.r) : '—'}
+          {trade.r != null ? fmt.r(trade.r) : 'No R'}
         </span>
         <span className={`num ${s.pnl}`}>{fmt.pnl(trade.pnl)}</span>
       </span>

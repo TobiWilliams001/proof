@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-/** Registers the offline worker in production only — in dev it would cache stale bundles. */
+/** Registers the offline worker in production only, in dev it would cache stale bundles. */
 export function ServiceWorker() {
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return;

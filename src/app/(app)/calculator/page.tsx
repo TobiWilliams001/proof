@@ -141,7 +141,7 @@ export default function CalculatorPage() {
             </div>
             <div className="stat">
               <div className="stat-label">Reward : risk</div>
-              <div className="stat-value">{res.rr ? `${res.rr.toFixed(2)}R` : '—'}</div>
+              <div className="stat-value">{res.rr ? `${res.rr.toFixed(2)}R` : 'No target'}</div>
             </div>
           </div>
           {res.margin != null && (

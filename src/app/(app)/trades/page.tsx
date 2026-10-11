@@ -43,7 +43,7 @@ export default function TradesPage() {
   const rangeLabel = range === 'all' ? 'all time' : `last ${range} days`;
   const byLabel = by === 'symbol' ? 'pair' : by;
 
-  // "/trades?trade=<id>" opens that trade — Ask links its supporting trades here.
+  // "/trades?trade=<id>" opens that trade, Ask links its supporting trades here.
   useEffect(() => {
     if (!ready) return;
     const id = new URLSearchParams(window.location.search).get('trade');
@@ -93,7 +93,7 @@ export default function TradesPage() {
       ) : data.trades.length === 0 ? (
         <div className="card empty">
           <h3>No trades yet</h3>
-          <p>Import your platform’s history file — live sync is on the way.</p>
+          <p>Connect your MetaTrader account and your trades will appear here on their own.</p>
           <div className="row" style={{ justifyContent: 'center', marginTop: 16 }}>
             <Link href="/settings#accounts" className="btn btn-primary btn-sm"><Upload size={15} /> Import history</Link>
           </div>
@@ -129,7 +129,7 @@ export default function TradesPage() {
             </div>
             <div className="stat">
               <div className="stat-label">Win rate</div>
-              <div className="stat-value">{stats.count ? fmt.pct(stats.winRate) : '—'}</div>
+              <div className="stat-value">{stats.count ? fmt.pct(stats.winRate) : 'None yet'}</div>
             </div>
             <div className="stat">
               <div className="stat-label">Avg R</div>
@@ -239,10 +239,10 @@ export default function TradesPage() {
         {open && isOpen(open) && (
           <div className="stack">
             <div className="stats" style={{ gridTemplateColumns: 'repeat(2, minmax(0,1fr))' }}>
-              <div className="stat"><div className="stat-label">Entry</div><div className="stat-value num">{open.entry || '—'}</div></div>
-              <div className="stat"><div className="stat-label">Stop</div><div className="stat-value num">{open.stop ?? '—'}</div></div>
+              <div className="stat"><div className="stat-label">Entry</div><div className="stat-value num">{open.entry || 'Not set'}</div></div>
+              <div className="stat"><div className="stat-label">Stop</div><div className="stat-value num">{open.stop ?? 'Not set'}</div></div>
               <div className="stat"><div className="stat-label">Opened</div><div className="stat-value" style={{ fontSize: 15 }}>{fmt.relative(open.openedAt, now)}</div></div>
-              <div className="stat"><div className="stat-label">Setup</div><div className="stat-value" style={{ fontSize: 15 }}>{open.setup ?? '—'}</div></div>
+              <div className="stat"><div className="stat-label">Setup</div><div className="stat-value" style={{ fontSize: 15 }}>{open.setup ?? 'None'}</div></div>
             </div>
             {openNotes.length > 0 && (
               <div className="list">
@@ -266,7 +266,7 @@ export default function TradesPage() {
             <div className="stats" style={{ gridTemplateColumns: 'repeat(2, minmax(0,1fr))' }}>
               <div className="stat"><div className="stat-label">Result</div><div className={`stat-value ${(open.r ?? open.pnl) >= 0 ? 'pos' : 'neg'}`}>{fmt.r(open.r)}</div></div>
               <div className="stat"><div className="stat-label">P&L</div><div className="stat-value">{fmt.pnl(open.pnl)}</div></div>
-              <div className="stat"><div className="stat-label">Entry → exit</div><div className="stat-value" style={{ fontSize: 15 }}>{open.entry || '—'} → {open.exit || '—'}</div></div>
+              <div className="stat"><div className="stat-label">Entry → exit</div><div className="stat-value" style={{ fontSize: 15 }}>{open.entry || '?'} → {open.exit || '?'}</div></div>
               <div className="stat"><div className="stat-label">Closed</div><div className="stat-value" style={{ fontSize: 15 }}>{fmt.date(open.closedAt)} {fmt.time(open.closedAt)}</div></div>
             </div>
             <div className="row wrap">

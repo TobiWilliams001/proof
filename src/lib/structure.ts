@@ -3,7 +3,7 @@ import type { EntryKind, Playbook, PlaybookSetup, Side, Structured, Trade } from
 /**
  * Local, deterministic note structuring. It runs instantly and offline (the
  * brief asks for weak-connection resilience) and it can only ever map to the
- * trader's own playbook — it never invents setups or tags.
+ * trader's own playbook, it never invents setups or tags.
  */
 
 export interface Clarify {
@@ -167,7 +167,7 @@ export function structureNote(
   confidence = Math.min(1, confidence);
 
   // Setup is the field that drives most answers, so it's the only one worth
-  // interrupting the trader for — and only on notes about an actual trade.
+  // interrupting the trader for, and only on notes about an actual trade.
   let clarify: Clarify | undefined;
   const setupMatters = (kind === 'trade_note' || kind === 'missed') && playbook.setups.length > 0;
   if (setupMatters && setups.length > 1) {

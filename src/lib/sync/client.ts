@@ -57,7 +57,7 @@ export async function disconnectMt(a: SyncAccount): Promise<boolean> {
   }
 }
 
-/** Problems the trader can't fix by waiting — these stop automatic retries until they act. */
+/** Problems the trader can't fix by waiting, these stop automatic retries until they act. */
 export const NEEDS_ACTION = new Set(['login_failed', 'server_not_found', 'otp_enabled', 'password_change', 'account_disabled', 'invalid', 'not_configured', 'limit_reached']);
 
 /** Every sync message in plain words. */

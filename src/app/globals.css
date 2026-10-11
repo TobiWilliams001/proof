@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   Proof — design tokens
+   Proof, design tokens
    Calm, paper-and-ink notebook. One accent. Numbers in mono.
    Mobile-first: base styles target phones, min-width queries scale up.
    ───────────────────────────────────────────────────────────── */
@@ -46,14 +46,14 @@
 
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* Type scale — one family, hierarchy from size and weight. */
+  /* Type scale, one family, hierarchy from size and weight. */
   --text-xs: 12px;
   --text-sm: 13.5px;
   --text-md: 15px;
   --text-lg: 17px;
   --text-xl: 21px;
   --text-2xl: 26px;
-  --text-3xl: clamp(30px, 8vw, 40px);
+  --text-3xl: clamp(28px, 7.5vw, 40px);
   --weight-medium: 500;
   --weight-strong: 600;
   --weight-display: 650;
@@ -192,11 +192,11 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
-  padding: 20px var(--gutter) calc(var(--nav-h) + 40px + env(safe-area-inset-bottom));
+  padding: 12px var(--gutter) calc(var(--nav-h) + 36px + env(safe-area-inset-bottom));
 }
 .page-wide { max-width: 1040px; }
 
-.page-head { margin: 4px 0 22px; }
+.page-head { margin: 4px 0 16px; }
 .eyebrow {
   font-size: 12px;
   font-weight: 500;
@@ -213,7 +213,7 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 }
 .page-sub { color: var(--ink-2); margin-top: 8px; max-width: 52ch; }
 
-.section { margin-top: 32px; }
+.section { margin-top: 24px; }
 .section-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   margin-bottom: 12px;
@@ -234,7 +234,7 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
   background: var(--surface);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-1);
-  padding: 18px;
+  padding: 16px;
 }
 .card-quiet { background: var(--surface-2); border-color: transparent; box-shadow: none; }
 .card-pad-lg { padding: 22px; }
@@ -384,11 +384,11 @@ button.chip:active { transform: scale(0.96); }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-.stat { background: var(--surface); padding: 14px 16px; min-width: 0; border-radius: var(--r); box-shadow: var(--shadow-1); }
+.stat { background: var(--surface); padding: 12px 14px; min-width: 0; border-radius: var(--r); box-shadow: var(--shadow-1); }
 .stat-label { font-size: 12px; color: var(--ink-3); font-weight: 500; }
 .stat-value {
   font-variant-numeric: tabular-nums;
-  font-size: 22px; font-weight: var(--weight-strong);
+  font-size: 20px; font-weight: var(--weight-strong);
   letter-spacing: -0.03em;
   margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -417,7 +417,8 @@ button.chip:active { transform: scale(0.96); }
 .list-item {
   display: flex; align-items: center; gap: 12px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 16px;
+  min-height: 52px;
   text-align: left;
   transition: background 0.15s;
 }
@@ -476,4 +477,13 @@ button.list-item:hover, a.list-item:hover { background: var(--surface-2); }
     position: absolute;
     inset: -6px -2px;
   }
+}
+
+/* Roomier on bigger screens; phones stay compact. */
+@media (min-width: 900px) {
+  .page-head { margin-bottom: 22px; }
+  .section { margin-top: 32px; }
+  .card { padding: 18px; }
+  .stat { padding: 14px 16px; }
+  .stat-value { font-size: 22px; }
 }

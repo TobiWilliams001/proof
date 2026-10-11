@@ -4,7 +4,7 @@ import { constrainToPlaybook } from '@/lib/structure';
 import type { EntryKind, Playbook, Structured, Trade } from '@/lib/types';
 
 /**
- * Typed AI tasks only — no free-form prompt proxy. Output is validated and
+ * Typed AI tasks only, no free-form prompt proxy. Output is validated and
  * constrained to the trader's own playbook before it leaves the server.
  */
 

@@ -41,7 +41,7 @@ const CASES: Case[] = [
   // Regressions: straight apostrophes are not quotes; "when I log X" captures X; periods filter notes.
   { q: "What's my win rate when I'm tired? It's been rough", contains: ['−1.0R'], trades: ['t2', 't6', 't9'] },
   { q: 'How do I do when I log tired', contains: ['−1.0R'], trades: ['t2', 't6', 't9'] },
-  // Both early-entry notes are from this week, so "last week" must find none — and must not search for "last week".
+  // Both early-entry notes are from this week, so "last week" must find none, and must not search for "last week".
   { q: 'What did I write about early entries last week?', contains: ["haven't written about “early entries”"], entries: [], unsure: true },
   // Every pair is flat or up, so the "worst" answer must not claim it costs money.
   { q: 'Which pair costs me the most?', contains: ['makes you the least R'] },
@@ -65,6 +65,6 @@ describe('eval: ask your journal', () => {
 
   afterAll(() => {
     const pct = (k: 'answer' | 'citations') => Math.round((results.filter((r) => r[k]).length / results.length) * 100);
-    process.stdout.write(`\n  Q&A eval — answer accuracy ${pct('answer')}% · citation correctness ${pct('citations')}% (${results.length} questions)\n`);
+    process.stdout.write(`\n  Q&A eval, answer accuracy ${pct('answer')}% · citation correctness ${pct('citations')}% (${results.length} questions)\n`);
   });
 });

@@ -20,7 +20,7 @@ export interface Trade {
   exit: number;
   size: number;
   pnl: number;
-  r: number | null; // null when risk is unknown — never guessed
+  r: number | null; // null when risk is unknown, never guessed
   setup?: string;
   session: Session;
   source: 'manual' | 'csv' | 'sync' | 'demo';
@@ -103,7 +103,7 @@ export interface SyncAccount {
   lastSyncedAt?: string;
   lastAttemptAt?: string;
   connectedAt: string;
-  /** Stop first seen for each position — R must reflect the risk taken, not a trailed stop. */
+  /** Stop first seen for each position, R must reflect the risk taken, not a trailed stop. */
   stops: Record<string, number>;
 }
 

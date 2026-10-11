@@ -277,9 +277,9 @@ describe('plan at open, congruence, and the review speaking first', () => {
 
   it('opens the review with facts that each carry their sources, and one suggestion at most', () => {
     const lines = buildCoachNote([open, w1, l1, l2], entries, DEMO_PLAYBOOK, now);
-    expect(lines[0].text).toBe('This week you took 3 trades — 1 won, 2 lost, and 1 position still open. You finished flat.');
+    expect(lines[0].text).toBe('This week you took 3 trades: 1 won, 2 lost, and 1 position still open. You finished flat.');
     const pattern = lines.find((l) => l.kind === 'pattern')!;
-    expect(pattern.text).toBe('Both losses were tagged “early entry” — you noted it yourself after each one.');
+    expect(pattern.text).toBe('Both losses were tagged “early entry”. You noted it yourself after each one.');
     expect(pattern.tradeIds.sort()).toEqual(['l1', 'l2']);
     expect(pattern.entryIds.sort()).toEqual(['n2', 'n3']);
     const discipline = lines.find((l) => l.kind === 'discipline')!;

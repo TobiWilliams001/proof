@@ -7,7 +7,7 @@ import './globals.css';
 const sans = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: { default: 'Proof — the trading journal you’ll actually keep', template: '%s · Proof' },
+  title: { default: 'Proof · the trading journal you’ll keep', template: '%s · Proof' },
   description:
     'Your trades sync on their own. You say what happened, in your own words. Then ask your journal anything.',
   applicationName: 'Proof',

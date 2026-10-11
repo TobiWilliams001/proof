@@ -20,14 +20,14 @@ function read(): Sample[] {
 }
 
 export function recordJournalTime(seconds: number) {
-  // Ignore notes drafted over a long gap — they measure the trader's day, not the tool.
+  // Ignore notes drafted over a long gap, they measure the trader's day, not the tool.
   if (!(seconds > 0) || seconds > 15 * 60) return;
   try {
     localStorage.setItem(KEY, JSON.stringify([...read(), { at: new Date().toISOString(), seconds: Math.round(seconds) }].slice(-MAX)));
   } catch {}
 }
 
-/** Median of the last 20 notes — the median ignores the odd distracted one. */
+/** Median of the last 20 notes, the median ignores the odd distracted one. */
 export function typicalJournalTime(): { seconds: number; samples: number } | null {
   const recent = read().slice(-20).map((s) => s.seconds).sort((a, b) => a - b);
   if (recent.length < 3) return null;

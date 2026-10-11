@@ -24,7 +24,7 @@ export function Sheet({
     if (open && !d.open) {
       d.showModal();
       // showModal focuses the first focusable (the close button); move to the field
-      // that asked for focus, if any — viewing a trade shouldn't pop the keyboard.
+      // that asked for focus, if any, viewing a trade shouldn't pop the keyboard.
       requestAnimationFrame(() => d.querySelector<HTMLElement>('[data-autofocus]')?.focus());
     }
     if (!open && d.open) d.close();

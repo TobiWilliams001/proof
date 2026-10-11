@@ -1,4 +1,4 @@
-// Weeks start on Monday — trading weeks open Sunday night/Monday, and reviews
+// Weeks start on Monday, trading weeks open Sunday night/Monday, and reviews
 // are written at the weekend.
 
 export function startOfDay(d: Date): Date {

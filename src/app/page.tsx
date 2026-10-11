@@ -11,7 +11,7 @@ const STEPS = [
   {
     icon: Plug,
     title: 'Connect once.',
-    body: 'Link your account with read-only access. Every trade — past and future — flows in on its own. You never type an entry, stop or result again.',
+    body: 'Link your account once. Every trade, past and future, comes in on its own. You never type an entry, stop or result again.',
   },
   {
     icon: Mic,
@@ -21,14 +21,14 @@ const STEPS = [
   {
     icon: Sparkles,
     title: 'See where the money goes.',
-    body: 'Ask your journal anything — “Which setup makes me the most?”, “How do I trade after a loss?” — and get answers from your own trades, with every trade behind the answer one tap away.',
+    body: 'Ask your journal anything, like “Which setup makes me the most?” or “How do I trade after a loss?” You get answers from your own trades, with every trade behind the answer one tap away.',
   },
 ];
 
 const WINS = [
-  ['Find your real edge.', 'See which setups, pairs and sessions actually make you money — in R and in your account currency — so you can do more of what works.'],
+  ['Find your edge.', 'See which setups, pairs and sessions make you money, in R and in your account currency, so you can do more of what works.'],
   ['Stop the leaks.', 'Spot the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Seen clearly, they’re fixable.'],
-  ['Pass the challenge. Keep the account.', 'For prop traders, consistency is everything. Proof shows whether you’re trading your plan — before a bad week turns into a lost account.'],
+  ['Pass the challenge. Keep the account.', 'For prop traders, consistency is everything. Proof shows whether you’re trading your plan, before a bad week turns into a lost account.'],
   ['Feel in control again.', 'No more wondering if you’re improving. Your weekly review shows exactly where you stand and the one thing to fix next.'],
 ];
 
@@ -39,15 +39,15 @@ const INSIGHTS = [
 ];
 
 const KINDS = [
-  ['missed', 'Missed trades', '“Saw it, didn’t take it — would’ve been +4R.”'],
+  ['missed', 'Missed trades', '“Saw it, didn’t take it. Would’ve been +4R.”'],
   ['rule_break', 'Broken rules', '“Revenge trade after the loss.”'],
   ['plan', 'Plans', '“Watching gold at 2,340 for a footprint entry.”'],
   ['reflection', 'Your state', '“Slept badly. Cut size.”'],
 ];
 
 const FAQ = [
-  ['Do I have to talk to it?', 'No. Type or speak — whatever suits the moment.'],
-  ['Does it work with prop-firm accounts?', 'Yes, if your firm uses a supported platform. Connect with the read-only (investor) password.'],
+  ['Do I have to talk to it?', 'No. Type or speak, whatever suits the moment.'],
+  ['Does it work with prop-firm accounts?', 'Yes, if your firm uses MetaTrader 4 or 5. Connect with your investor password, the view-only one your firm gives you.'],
   ['Will it tell me how to trade?', 'No. Your strategy stays yours. Proof shows you, with evidence, what’s working in it and what isn’t.'],
   ['What does it cost?', 'Free during early access.'],
 ];
@@ -77,7 +77,7 @@ export default function Landing() {
             </h1>
           </Reveal>
           <Reveal delay={0.14}><p className={s.lede}>
-            Proof syncs your trades, lets you say what happened in seconds, and shows you exactly where you win — and where you keep losing.
+            Proof syncs your trades, lets you say what happened in seconds, and shows you where you win and where you keep losing.
           </p></Reveal>
           <Reveal delay={0.22} className={s.heroCta} id="join">
             <WaitlistForm />
@@ -85,7 +85,7 @@ export default function Landing() {
           </Reveal>
         </div>
 
-        {/* Product moment — a real-looking slice of the app, labelled as an example. */}
+        {/* Product moment: a slice of the app, labelled as an example. */}
         <div className={s.demo} aria-label="Example of Proof in use">
           <Reveal delay={0.3} y={28} className={s.demoCard}>
             <div className={s.demoPrompt}>
@@ -110,12 +110,12 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* INTEREST — why journaling hasn't worked */}
+      {/* INTEREST: why journaling hasn't worked */}
       <section className={s.section}>
         <div className={`${s.wrap} ${s.narrow}`}>
           <Reveal><h2 className={s.h2}>Every trader knows their journal could make them better. Almost none keep one.</h2></Reveal>
           <p className={s.body}>
-            Not because you lack discipline. Because the moment a trade closes — when the truth about why you took it is still fresh — the journal asks you to open a form and type numbers your platform already has.
+            Not because you lack discipline. Because the moment a trade closes, when the truth about why you took it is still fresh, the journal asks you to open a form and type numbers your platform already has.
           </p>
           <p className={s.body}>
             So the moment passes. And the mistakes that drain your account stay invisible, repeating quietly week after week.
@@ -124,7 +124,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* INTEREST — how it works */}
+      {/* INTEREST: how it works */}
       <section className={`${s.section} ${s.tint}`} id="how">
         <div className={s.wrap}>
           <p className={s.kicker}>How it works</p>
@@ -143,7 +143,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* DESIRE — what changes */}
+      {/* DESIRE: what changes */}
       <section className={s.section}>
         <div className={s.wrap}>
           <Reveal><h2 className={`${s.h2} ${s.narrowH}`}>Trade with the clarity of someone who knows their numbers.</h2></Reveal>
@@ -168,13 +168,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* DESIRE — built around how you trade */}
+      {/* DESIRE: built around how you trade */}
       <section className={`${s.section} ${s.tint}`}>
         <div className={`${s.wrap} ${s.split}`}>
           <div>
             <Reveal><h2 className={s.h2}>Your system. Not ours.</h2></Reveal>
             <p className={s.body}>
-              Describe your playbook in plain words — your setups, your rules, what you care about. Proof organises everything around it. It never tells you how to trade. It shows you how <em>you</em> trade.
+              Describe your playbook in plain words: your setups, your rules, what you care about. Proof organises everything around it. It never tells you how to trade. It shows you how <em>you</em> trade.
             </p>
           </div>
           <Reveal delay={0.1} className={s.playbook}>
@@ -190,7 +190,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* DESIRE — trades you didn't take */}
+      {/* DESIRE: trades you didn't take */}
       <section className={s.section}>
         <div className={s.wrap}>
           <Reveal><h2 className={`${s.h2} ${s.narrowH}`}>The trades you didn’t take matter too.</h2></Reveal>
@@ -207,7 +207,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* DESIRE — trust + privacy */}
+      {/* DESIRE: trust + privacy */}
       <section className={`${s.section} ${s.tint}`}>
         <div className={`${s.wrap} ${s.twoCol}`}>
           <div className={s.trust}>
@@ -220,8 +220,8 @@ export default function Landing() {
             <Reveal><h2 className={s.h2}><Lock size={22} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 8 }} />Private by default.</h2></Reveal>
             <ul className={s.checks}>
               {[
-                'Read-only access. Proof can never place or change a trade.',
-                'Credentials encrypted. Disconnect anytime and they’re deleted.',
+                'Proof can see your trades. It can never place or change one.',
+                'Your login details are locked away. Disconnect any time and they’re deleted.',
                 'No voice recordings stored.',
                 'Export or delete your data whenever you want.',
               ].map((t) => (

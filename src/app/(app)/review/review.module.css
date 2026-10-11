@@ -13,13 +13,14 @@
 }
 
 .improve {
-  padding: 22px;
+  padding: 18px;
   border-radius: var(--r-xl);
   background: var(--surface);
   box-shadow: 0 0 0 6px var(--accent-soft);
 }
 
-.chapter { margin-top: 36px; }
+.chapter { margin-top: 28px; }
+@media (min-width: 900px) { .chapter { margin-top: 36px; } }
 .chapterHead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
 .chapterNum { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.02em; }
 .chapterTitle { font-weight: var(--weight-display); font-size: var(--text-xl); letter-spacing: var(--tracking-display); }
@@ -63,15 +64,15 @@
 
 /* The coaching note: the first thing on the page, written like a message. */
 .coach {
-  padding: 20px;
+  padding: 16px 18px;
   border-radius: var(--r-xl);
   background:
     radial-gradient(130% 120% at 0% 0%, var(--accent-soft), transparent 55%),
     var(--surface);
   box-shadow: var(--shadow-1);
 }
-.coachBody { display: grid; gap: 12px; }
-.coachLead { font-size: var(--text-xl); font-weight: var(--weight-strong); line-height: 1.4; letter-spacing: -0.02em; }
+.coachBody { display: grid; gap: 10px; }
+.coachLead { font-size: var(--text-lg); font-weight: var(--weight-strong); line-height: 1.4; letter-spacing: -0.02em; }
 .coachFact { font-size: var(--text-md); line-height: 1.6; color: var(--ink-2); }
 .cite {
   display: inline-flex;

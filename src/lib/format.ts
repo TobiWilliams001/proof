@@ -9,7 +9,7 @@ export const fmt = {
   money: (n: number) => money.format(n),
   pnl: (n: number) => `${n >= 0 ? '+' : '−'}${money.format(Math.abs(n))}`,
   r: (r: number | null | undefined) =>
-    r == null || Number.isNaN(r) ? '—' : `${r > 0 ? '+' : r < 0 ? '−' : ''}${Math.abs(r).toFixed(1)}R`,
+    r == null || Number.isNaN(r) ? 'No R' : `${r > 0 ? '+' : r < 0 ? '−' : ''}${Math.abs(r).toFixed(1)}R`,
   pct: (n: number) => `${Math.round(n * 100)}%`,
   date: (iso: string) =>
     new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),

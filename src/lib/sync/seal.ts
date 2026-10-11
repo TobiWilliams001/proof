@@ -5,7 +5,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
  * Seals a small payload so the browser can hold it but only this server can read
  * or forge it (AES-256-GCM: encrypted and tamper-evident). Used for the trading
  * account reference, so Proof keeps no database of credentials. The trader's
- * password never comes back here at all — it goes once to the sync provider.
+ * password never comes back here at all, it goes once to the sync provider.
  */
 
 function key(): Buffer {

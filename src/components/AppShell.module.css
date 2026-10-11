@@ -1,6 +1,6 @@
 .shell { min-height: 100dvh; }
 
-/* Soft aurora behind content — the one "wow" surface, kept faint. */
+/* Soft aurora behind content, the one "wow" surface, kept faint. */
 .shell::before {
   content: '';
   position: fixed;

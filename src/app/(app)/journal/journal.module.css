@@ -1,10 +1,10 @@
-.prompts { display: grid; gap: 8px; margin-bottom: 14px; }
+.prompts { display: grid; gap: 8px; margin-bottom: 12px; }
 .prompt {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 13px 16px;
+  padding: 11px 14px;
   text-align: left;
   border-radius: var(--r);
   background: var(--accent-soft);
@@ -55,7 +55,7 @@
 
 .filterBar { display: flex; align-items: center; gap: 8px; }
 
-.day { margin-top: 22px; }
+.day { margin-top: 18px; }
 .dayLabel {
   display: flex;
   align-items: baseline;
@@ -75,12 +75,12 @@
   margin-bottom: 14px;
 }
 .glanceItem {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: var(--r);
   background: var(--surface);
   min-width: 0;
 }
-.glanceValue { font-size: 19px; font-weight: 500; letter-spacing: -0.02em; margin: 1px 0; }
+.glanceValue { font-size: 18px; font-weight: 500; letter-spacing: -0.02em; margin: 1px 0; }
 
 .tradeFacts {
   display: grid;
@@ -112,8 +112,8 @@
 .weekReady {
   display: grid;
   gap: 6px;
-  margin-bottom: 14px;
-  padding: 18px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
   border-radius: var(--r-lg);
   background:
     radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 60%),

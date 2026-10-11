@@ -108,7 +108,7 @@ export function round(n: number, dp: number) {
 
 /**
  * R from prices: how far price moved in the trader's favour, in units of the
- * risk they took (entry→stop). Null when there's no valid stop — never guessed.
+ * risk they took (entry→stop). Null when there's no valid stop, never guessed.
  */
 export function rFromPrices(side: Side, entry: number, stop: number | undefined, exit: number): number | null {
   if (stop == null || !entry || !exit) return null;

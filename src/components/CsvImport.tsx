@@ -61,7 +61,7 @@ export function CsvImport({ onImport }: { onImport: (t: Trade[]) => number }) {
         <span className="spacer" />
         <span className="faint num" style={{ fontSize: 12 }}>{rows.length - 1} rows</span>
       </div>
-      <p className="muted" style={{ fontSize: 13 }}>We matched what we could. Check the columns — symbol, close time and P&L are required.</p>
+      <p className="muted" style={{ fontSize: 13 }}>We matched what we could. Check the columns. Symbol, close time and P&L are needed.</p>
       <div className="grid-2">
         {CSV_FIELDS.map((f) => (
           <label key={f} className="field">
@@ -71,7 +71,7 @@ export function CsvImport({ onImport }: { onImport: (t: Trade[]) => number }) {
               value={map[f] ?? ''}
               onChange={(e) => setMap({ ...map, [f]: e.target.value === '' ? undefined : Number(e.target.value) })}
             >
-              <option value="">—</option>
+              <option value="">Skip</option>
               {headers.map((h, i) => <option key={i} value={i}>{h || `Column ${i + 1}`}</option>)}
             </select>
           </label>

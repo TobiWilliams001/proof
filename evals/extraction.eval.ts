@@ -41,7 +41,7 @@ const CASES: Case[] = [
   { note: 'Distracted by phone, energy low. Stopping for the day.', kind: 'reflection' },
   { note: 'A+ 3-touch on gold, +3.2R', kind: 'trade_note', setup: '3-touch', symbol: 'XAUUSD', r: 3.2, tags: ['A+'] },
   { note: 'Late entry on the footprint at US30, scratched it for 0R', kind: 'trade_note', setup: 'Footprint', symbol: 'US30', r: 0, tags: ['late entry'] },
-  { note: 'Skipped the breakout retest on GBPUSD — didn’t trust it', kind: 'missed', setup: 'Breakout retest', symbol: 'GBPUSD' },
+  { note: 'Skipped the breakout retest on GBPUSD, didn’t trust it', kind: 'missed', setup: 'Breakout retest', symbol: 'GBPUSD' },
   { note: 'Revenge trade on NAS100 after the stop-out. -1R', kind: 'rule_break', symbol: 'NAS100', r: -1, tags: ['revenge'] },
   { note: 'Waiting for a footprint confirmation at 2,320 if price gets there', kind: 'plan', setup: 'Footprint' },
 ];
@@ -79,6 +79,6 @@ describe('eval: note structuring', () => {
   afterAll(() => {
     const parts = (Object.keys(tally) as Field[]).map((k) => `${k} ${Math.round((tally[k][0] / Math.max(1, tally[k][1])) * 100)}%`);
     const [ok, n] = Object.values(tally).reduce(([a, b], [x, y]) => [a + x, b + y], [0, 0]);
-    process.stdout.write(`\n  Extraction eval — overall ${Math.round((ok / n) * 100)}% · ${parts.join(' · ')} (${CASES.length} notes)\n`);
+    process.stdout.write(`\n  Extraction eval, overall ${Math.round((ok / n) * 100)}% · ${parts.join(' · ')} (${CASES.length} notes)\n`);
   });
 });

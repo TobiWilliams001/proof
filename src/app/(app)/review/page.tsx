@@ -86,7 +86,7 @@ export default function ReviewPage() {
             <div className="stats">
               <Stat label="Net R" value={fmt.r(r.stats.totalR)} tone={r.stats.totalR >= 0 ? 'pos' : 'neg'} />
               <Stat label="P&L" value={fmt.pnl(r.stats.pnl)} tone={r.stats.pnl >= 0 ? 'pos' : 'neg'} />
-              <Stat label="Win rate" value={hasTrades ? fmt.pct(r.stats.winRate) : '—'} sub={`${r.stats.wins}W · ${r.stats.losses}L${r.stats.breakeven ? ` · ${r.stats.breakeven}BE` : ''}`} />
+              <Stat label="Win rate" value={hasTrades ? fmt.pct(r.stats.winRate) : 'None yet'} sub={`${r.stats.wins}W · ${r.stats.losses}L${r.stats.breakeven ? ` · ${r.stats.breakeven}BE` : ''}`} />
               <Stat label="Avg R" value={fmt.r(r.stats.avgR)} sub={`best ${fmt.r(r.stats.bestR)} · worst ${fmt.r(r.stats.worstR)}`} />
             </div>
             {hasTrades && (
@@ -111,7 +111,7 @@ export default function ReviewPage() {
               <Meter
                 label="Followed your plan"
                 value={r.adherence}
-                display={r.adherence == null ? '—' : fmt.pct(r.adherence)}
+                display={r.adherence == null ? 'Not yet' : fmt.pct(r.adherence)}
                 sub={
                   r.adherenceSource === 'answers'
                     ? `from your answers on ${r.planAnswered} trade${r.planAnswered === 1 ? '' : 's'}`
@@ -239,7 +239,7 @@ function SetupCard({ title, s: x }: { title: string; s: { name: string; totalR: 
   );
 }
 
-/** A list folded behind its count — the number is the headline, the notes are on demand. */
+/** A list folded behind its count, the number is the headline, the notes are on demand. */
 function Fold({
   title,
   items,

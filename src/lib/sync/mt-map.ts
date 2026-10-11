@@ -62,13 +62,13 @@ export const tradeIdFor = (accountId: string, positionId: string) => `mt_${accou
 
 export interface MapOptions {
   accountId: string;
-  /** Stops Proof saw when each position first appeared — the reliable source of R on MT4. */
+  /** Stops Proof saw when each position first appeared, the reliable source of R on MT4. */
   sightedStops?: Record<string, number>;
 }
 
 /**
  * Groups deals by position and returns the positions that are fully closed.
- * Positions still partly open are left out — they're reported as open trades.
+ * Positions still partly open are left out, they're reported as open trades.
  * Also returns position ids whose opening deal falls outside the fetched range,
  * so the caller can fetch those deals and try again.
  */

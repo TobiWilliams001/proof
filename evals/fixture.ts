@@ -2,7 +2,7 @@ import type { Entry, Trade } from '../src/lib/types';
 
 /**
  * Hand-written dataset for the Q&A eval. Expected answers in qa.eval.ts were
- * worked out by hand from these rows — not by running the code — so the eval
+ * worked out by hand from these rows, not by running the code, so the eval
  * actually checks the maths instead of restating it.
  *
  * "Now" is Sat 10 Oct 2026, so "this week" = Mon 5 – Sun 11 Oct.

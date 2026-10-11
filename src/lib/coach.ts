@@ -36,7 +36,7 @@ export function buildCoachNote(
   const lines: CoachLine[] = [];
   let suggestion: CoachLine | null = null;
 
-  // 1 — What happened.
+  // 1, What happened.
   const st = computeStats(trades);
   if (st.count) {
     const parts = [st.wins && `${st.wins} won`, st.losses && `${st.losses} lost`, st.breakeven && `${st.breakeven} broke even`].filter(Boolean);
@@ -49,7 +49,7 @@ export function buildCoachNote(
         : `${st.pnl > 0 ? 'up' : 'down'} ${fmt.money(Math.abs(st.pnl))}`;
     lines.push({
       kind: 'summary',
-      text: `This week you took ${count(st.count, 'trade')} — ${parts.join(', ')}${open}. You finished ${net}.`,
+      text: `This week you took ${count(st.count, 'trade')}: ${parts.join(', ')}${open}. You finished ${net}.`,
       tradeIds: trades.map((t) => t.id),
       entryIds: [],
     });
@@ -59,11 +59,11 @@ export function buildCoachNote(
     lines.push({ kind: 'summary', text: 'No trades this week.', tradeIds: [], entryIds: [] });
   }
 
-  // 2 — A pattern in the trader's own words after losses.
+  // 2, A pattern in the trader's own words after losses.
   const losses = trades.filter((t) => outcomeOf(t) === 'loss');
   const lossNotes = weekEntries.filter((e) => e.tradeId && losses.some((t) => t.id === e.tradeId) && e.kind !== 'plan');
   const notedLosses = new Set(lossNotes.map((e) => e.tradeId));
-  // Patterns come only from the trader's own vocabulary — their playbook tags, set on
+  // Patterns come only from the trader's own vocabulary, their playbook tags, set on
   // the confirm card or written in a note kept as written. A tag only counts if it
   // separates losses from wins (judged against four weeks of wins, not one).
   const tagsIn = (e: Entry) =>
@@ -87,7 +87,7 @@ export function buildCoachNote(
     lines.push({
       kind: 'pattern',
       text: all
-        ? `${spell(tradeIds.length)} losses were tagged “${theme.word}” — you noted it yourself after each one.`
+        ? `${spell(tradeIds.length)} losses were tagged “${theme.word}”. You noted it yourself after each one.`
         : `${tradeIds.length} of your ${losses.length} losses were tagged “${theme.word}” in your own notes.`,
       tradeIds,
       entryIds: ids,
@@ -95,7 +95,7 @@ export function buildCoachNote(
     suggestion = { kind: 'suggestion', text: `Next week, check for “${theme.word}” before you enter.`, tradeIds, entryIds: ids };
   }
 
-  // 3 — Setups compared over a longer window, so one week's noise doesn't decide it.
+  // 3, Setups compared over a longer window, so one week's noise doesn't decide it.
   const window = closedOnly(allTrades).filter((t) => t.closedAt >= addDays(start, -21).toISOString() && t.closedAt < end.toISOString());
   const setups = groupStats(window, 'setup').filter((g) => g.name !== 'Untagged' && g.stats.rCount >= 3 && g.stats.avgR != null);
   if (setups.length >= 2) {
@@ -119,7 +119,7 @@ export function buildCoachNote(
     }
   }
 
-  // 4 — Discipline: the one-tap "did you follow your plan?" answers.
+  // 4, Discipline: the one-tap "did you follow your plan?" answers.
   const plan = congruence({ trades, entries });
   const answered = trades.filter((t) => plan.has(t.id));
   if (answered.length >= 2) {
@@ -132,13 +132,13 @@ export function buildCoachNote(
       // Average against average, so the comparison is fair.
       text += ` When you didn’t, you averaged ${fmt.r(brokeR.avgR)} a trade; when you did, ${fmt.r(keptR.avgR)}.`;
       if (keptR.avgR != null && brokeR.avgR != null && keptR.avgR > brokeR.avgR) {
-        suggestion ??= { kind: 'suggestion', text: 'Your plan is paying you — that’s the habit to protect next week.', tradeIds: kept.map((t) => t.id), entryIds: [] };
+        suggestion ??= { kind: 'suggestion', text: 'Your plan is paying you. That’s the habit to protect next week.', tradeIds: kept.map((t) => t.id), entryIds: [] };
       }
     }
     lines.push({ kind: 'discipline', text, tradeIds: answered.map((t) => t.id), entryIds: [] });
   }
 
-  // 5 — Trades not taken.
+  // 5, Trades not taken.
   const missed = weekEntries.filter((e) => e.kind === 'missed');
   if (missed.length) {
     const r = missed.reduce((s, e) => s + (e.structured?.r ?? 0), 0);

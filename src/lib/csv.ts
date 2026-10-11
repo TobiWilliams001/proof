@@ -90,7 +90,7 @@ export function parseDate(v: string | undefined): Date | null {
   const s = v.trim();
   if (/^\d{12,13}$/.test(s)) return new Date(Number(s));
   const m = s.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-  // Anything with an explicit zone or offset is unambiguous — let the engine parse it.
+  // Anything with an explicit zone or offset is unambiguous, let the engine parse it.
   if (m && !/(Z|[+-]\d{2}:?\d{2})$/i.test(s)) {
     const [, y, mo, d, h = '0', mi = '0', se = '0'] = m;
     return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se));

@@ -5,7 +5,7 @@ import type { Entry, JournalData, Playbook, Side, Trade } from './types';
 export const DEMO_PLAYBOOK: Playbook = {
   setups: [
     { id: 's1', name: '2-touch', description: 'Continuation after the second touch of a value area on the 1H.', aliases: ['RE', 'two touch'] },
-    { id: 's2', name: '3-touch', description: 'Continuation after a third, cleaner touch — the A+ version.', aliases: ['RRE', 'three touch'] },
+    { id: 's2', name: '3-touch', description: 'Continuation after a third, cleaner touch. The A+ version.', aliases: ['RRE', 'three touch'] },
     { id: 's3', name: 'Footprint', description: 'Order-flow entry on absorption at a planned level.', aliases: ['footprint entry'] },
     { id: 's4', name: 'Breakout retest', description: 'Range break, then retest of the broken level.', aliases: ['retest'] },
   ],
@@ -35,7 +35,7 @@ const SYMBOLS: Record<string, { price: number; pip: number }> = {
   NAS100: { price: 19850, pip: 1 },
 };
 
-// Win probability and average winner per setup — 3-touch is the trader's edge.
+// Win probability and average winner per setup, 3-touch is the trader's edge.
 const SETUP_PROFILE: Record<string, { p: number; win: [number, number] }> = {
   '3-touch': { p: 0.64, win: [1.8, 3.6] },
   '2-touch': { p: 0.5, win: [1.2, 2.4] },
@@ -50,7 +50,7 @@ const WIN_NOTES = [
   '{setup} on the 1H, came in a little late entry but the level held.',
 ];
 const LOSS_NOTES = [
-  'Took the {setup} too soon — early entry before the touch confirmed. Stopped out.',
+  'Took the {setup} too soon. Early entry before the touch confirmed. Stopped out.',
   'Felt tired, forced a {setup} that was not really there. Should have sat out.',
   'Clean {setup} by the rules, just didn’t work. Fine loss.',
   'Moved stop on the {setup} and gave back more than planned. Early entry again.',
@@ -109,7 +109,7 @@ export function buildDemo(now = new Date()): JournalData {
       // Leave the most recent trade un-journaled so the post-close prompt shows.
       if (d === 0 || rand() < 0.3) continue;
       const text = pick(r > 0 ? WIN_NOTES : LOSS_NOTES).replace('{setup}', setup);
-      // Some trades got a plan written as they opened — before the result could colour it.
+      // Some trades got a plan written as they opened, before the result could colour it.
       if (rand() < 0.35) {
         entries.push({
           id: `demo_p${n}`,
@@ -136,8 +136,8 @@ export function buildDemo(now = new Date()): JournalData {
     }
   }
 
-  // The most recent closed trade always waits for its note — even at the weekend,
-  // when no trade closed today — so the post-close prompt is visible in the demo.
+  // The most recent closed trade always waits for its note, even at the weekend,
+  // when no trade closed today, so the post-close prompt is visible in the demo.
   const latest = trades[trades.length - 1];
   for (let i = entries.length - 1; i >= 0; i--) {
     if (entries[i].tradeId === latest.id && entries[i].kind !== 'plan') entries.splice(i, 1);
@@ -164,7 +164,7 @@ export function buildDemo(now = new Date()): JournalData {
   });
 
   const extra: [number, Entry['kind'], string, Partial<Entry['structured']>][] = [
-    [1, 'missed', 'Saw a 3-touch on GBPUSD at 1.2650, didn’t take it — would’ve been +4R. Hesitated after the morning loss.', { symbol: 'GBPUSD', setup: '3-touch', r: 4 }],
+    [1, 'missed', 'Saw a 3-touch on GBPUSD at 1.2650, didn’t take it. Would’ve been +4R. Hesitated after the morning loss.', { symbol: 'GBPUSD', setup: '3-touch', r: 4 }],
     [3, 'reflection', 'Tired, slept badly. Cut size in half and only took A+ setups.', { tags: ['tired', 'A+'] }],
     [6, 'missed', 'Missed the Footprint on XAUUSD, was away from the desk. Would have been +2.5R.', { symbol: 'XAUUSD', setup: 'Footprint', r: 2.5 }],
     [0, 'plan', 'Watching XAUUSD at 2,340 for a footprint entry today. Only if London holds the low.', { symbol: 'XAUUSD', setup: 'Footprint' }],

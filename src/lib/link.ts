@@ -6,7 +6,7 @@ const HOUR = 3600_000;
  * Sync is periodic, so a trader often writes about a trade before it arrives.
  * When trades land, attach unlinked notes that name the same symbol and were
  * written while the trade was live (or shortly after it closed). A note is only
- * linked when exactly one new trade fits — ambiguity stays unlinked, never guessed.
+ * linked when exactly one new trade fits, ambiguity stays unlinked, never guessed.
  */
 export function linkEarlyNotes(entries: Entry[], arrived: Trade[]): Entry[] {
   return entries.map((e) => {

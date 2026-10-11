@@ -51,7 +51,7 @@ export default function AskPage() {
   return (
     <div className="page">
       <header className="page-head">
-        <div className="eyebrow">Answers from your own trades — never invented</div>
+        <div className="eyebrow">Answers from your own trades, never made up</div>
         <h1 className="page-title">Ask your journal</h1>
       </header>
 

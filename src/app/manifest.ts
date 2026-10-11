@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Proof — trading journal',
+    name: 'Proof',
     short_name: 'Proof',
     description: 'The trading journal you’ll actually keep.',
     start_url: '/journal',
