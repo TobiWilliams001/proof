@@ -32,7 +32,7 @@ Sync that just works, fast human support, depth for the price, psychology/discip
 | MetaApi (cloud terminal) | Investor (read-only) password | Yes | ~$30/mo + usage; 6-hour minimum each time an account starts | Mixed reliability reviews; MetaQuotes terminal restrictions have broken cloud connections |
 | Expert Advisor in the trader's terminal | None shared | Real-time | Free to build | Best data (original SL/TP, comments); terminal must stay open; URL allow-list setup |
 | HTML/CSV statement export | None | No | Free | Manual; "All history" + English report; broker server time |
-| Official MetaQuotes API | Broker-side only | — | — | No consumer read-only API exists |
+| Official MetaQuotes API | Broker-side only |, |, | No consumer read-only API exists |
 
 **Data rules that matter:** one MT5 position can be many deals, so key on (account, position id) and keep every deal id. MT4 partial closes create a new ticket ("from #…"). Server time is broker time (often GMT+2/+3, shifting with US DST), so detect the offset per server. **R needs the original stop**, which history often doesn't keep, so capture it when the position is first seen.
 
@@ -45,7 +45,7 @@ Feature sprawl (hundreds of charts, replay, courses). AI writing over trade data
 
 **Already true in the product**
 - Numbers are computed, never generated. Every answer and weekly claim shows the trades or notes behind it.
-- Answers on small samples say so ("only 3 trades — a hint, not a pattern").
+- Answers on small samples say so ("only 3 trades, a hint, not a pattern").
 - AI only suggests. Structuring goes through the confirm card; nothing overwrites trade data.
 - Platform position ids are stored and used for de-duplication; re-imports never double-count.
 - A note written before its trade arrives links itself when the trade lands, but only when exactly one trade fits.
@@ -67,3 +67,17 @@ Feature sprawl (hundreds of charts, replay, courses). AI writing over trade data
 4. cTrader as the first live adapter. Apply to Spotware now.
 5. Paged, rate-limited Binance/Bybit backfill plus CSV for older history; tell traders plainly how far back the API goes.
 6. Duplicate-detection and DST-week cases added to the evals.
+
+## What we learned from each reference project
+
+We studied these to understand them, not to reuse their code.
+
+**Deltalytix** (non-commercial licence, study only). Turns broker fills into trades with a first-in, first-out queue per instrument, which is sound, but it saves one row per matched piece, so one position closed in three parts becomes three trades and inflates the win rate. Duplicates are found by hashing the trade's contents, which broke again and again (corrections, the same fill arriving two ways). Its AI tools and its screens calculate win rate and profit factor separately and can disagree. It keeps no stop, so it has no R. **Proof:** one position is one trade; identity comes from the platform's own position number; one calculation path for screens, answers and the weekly note; the original stop is kept.
+
+**TradePad**. Lets an AI assistant read and write the journal, which is a good idea, but its assistant endpoints have no sign-in and allow writes and deletes. Its R returns 0 instead of "unknown" on bad input, and days are counted in UTC rather than the trader's time. **Proof:** if we add an assistant connection, it will be read-only, signed in, and built on the same tools as Ask; R is never guessed.
+
+**TradeNote** (GPL, study only). Keeps executions as the source of truth and shows gross and net side by side, both good. But it groups by "flat to flat" without handling a reversal, counts breakeven as a win, assumes US dollars, and rejects a whole day on re-import if anything from that day exists. **Proof:** reversals split into two trades, breakeven is its own count, duplicates are caught per position.
+
+**MetaApi and MetaTrader**. Deals carry a UTC time as well as broker time, so time zones are handled. An MT5 opening deal carries the stop of the order that opened it (the original stop); MT4 only reports the latest stop, so for MT4 Proof trusts only the stop it saw when the position first appeared. One position can have many deals; a partial close is extra closing deals; a reversal closes one side and opens the other. MetaApi's free tier can't be used by an app serving other people, so Proof pays per connected account. **Proof:** all of the above is in `src/lib/sync/mt-map.ts`, with tests for partial closes, reversals, fees, swap and stops.
+
+**Open-source sync EAs** (studied for the future push path). The good ones queue events, send them in batches, retry until accepted, and use the deal number to avoid duplicates. Common mistakes: sending broker time as if it were UTC, losing the open price on later partial closes, and no queue that survives a restart.

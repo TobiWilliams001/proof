@@ -1,6 +1,6 @@
 # Proof
 
-The trading journal you'll actually keep. Trades arrive on their own, you say what happened in your own words, then you ask your journal anything — and every answer shows the trades behind it.
+The trading journal you'll actually keep. Trades arrive on their own, you say what happened in your own words, then you ask your journal anything, and every answer shows the trades behind it.
 
 Product brief: [docs/PROOF_BRIEF.md](docs/PROOF_BRIEF.md) · Landing copy: [docs/PROOF_COPY.md](docs/PROOF_COPY.md)
 
@@ -8,21 +8,24 @@ Product brief: [docs/PROOF_BRIEF.md](docs/PROOF_BRIEF.md) · Landing copy: [docs
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000 — open /journal and "Explore with a demo journal"
+npm run dev        # http://localhost:3000, open /journal and "Explore with a demo journal"
 npm test           # unit tests
 npm run eval       # extraction + Ask-your-journal evals (prints accuracy)
 npm run lint
 npm run build
 ```
 
-> This is Next.js 16 — read `AGENTS.md` and `node_modules/next/dist/docs/` before changing framework code.
+> This is Next.js 16, read `AGENTS.md` and `node_modules/next/dist/docs/` before changing framework code.
 
 ## Environment (`.env.local`)
 
 | Variable | Needed for | Without it |
 |---|---|---|
 | `GEMINI_API_KEY` | AI refinement of note structuring; plain-language playbook import | Local structuring still works; playbook is edited by hand |
-| `GEMINI_MODEL` | Override the default model (`gemini-3.8-flash`) | — |
+| `GEMINI_MODEL` | Override the default model (`gemini-3.8-flash`) |, |
+| `METAAPI_TOKEN` | Automatic MetaTrader 4/5 import (MetaApi API token) | Settings says automatic import isn't switched on |
+| `SYNC_SECRET` | Locks each connected account reference so only Proof's server can use it (32+ random characters) | Automatic import stays off |
+| `SYNC_MAX_ACCOUNTS` | Cap on connected accounts while there's no sign-in (default 3); each one costs money at MetaApi | Defaults to 3 |
 | `WAITLIST_WEBHOOK_URL` | Landing-page waitlist (forwards `{ email }` as JSON) | Form says the waitlist isn't open yet |
 
 ## How it's built
@@ -41,4 +44,4 @@ npm run build
 
 ## Not built yet (from the brief)
 
-Auth and Supabase persistence, live platform sync (cTrader, MT4/5, Bybit, Binance), server-side encrypted credentials.
+Sign-in and a database (Supabase), cTrader, Bybit and Binance import, and the EA push path for MetaTrader.
