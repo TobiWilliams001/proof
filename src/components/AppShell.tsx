@@ -5,6 +5,8 @@ import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useJournal } from '@/lib/store';
+import { NEEDS_ACTION, SYNC_PROBLEM } from '@/lib/sync/client';
+import { useAutoSync } from '@/lib/sync/useAutoSync';
 import { Logo } from './Logo';
 import { MotionRoot, SPRING } from './motion';
 import { ThemeToggle } from './ThemeSwitch';
@@ -25,6 +27,9 @@ const SECONDARY = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { data, ready, saveFailed } = useJournal();
+  useAutoSync();
+  // Only problems the trader must fix get a banner; temporary ones retry quietly.
+  const broken = (data.accounts ?? []).find((a) => a.state === 'error' && a.problem && NEEDS_ACTION.has(a.problem));
   const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
   const moreActive = SECONDARY.some((i) => isActive(i.href));
 
@@ -70,6 +75,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className={s.main}>
+        {broken && !path.startsWith('/settings') && (
+          <div className={s.saveBanner} role="alert">
+            <strong>We can’t bring in trades from {broken.name}.</strong> {SYNC_PROBLEM[broken.problem!]}{' '}
+            <Link href="/settings#accounts">Fix it in Settings</Link>
+          </div>
+        )}
         {saveFailed && (
           <div className={s.saveBanner} role="alert">
             <strong>Your latest changes couldn’t be saved on this device.</strong>{' '}

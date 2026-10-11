@@ -90,8 +90,26 @@ export interface WeeklyReviewNote {
   improvement: string;
 }
 
+/** A trading account that imports on its own. `sealed` is only readable by Proof's server. */
+export interface SyncAccount {
+  localId: string;
+  platform: 'mt4' | 'mt5';
+  name: string;
+  login: string;
+  server: string;
+  sealed: string;
+  state: 'connecting' | 'ok' | 'error';
+  problem?: string;
+  lastSyncedAt?: string;
+  lastAttemptAt?: string;
+  connectedAt: string;
+  /** Stop first seen for each position — R must reflect the risk taken, not a trailed stop. */
+  stops: Record<string, number>;
+}
+
 export interface JournalData {
   version: 2;
+  accounts?: SyncAccount[];
   trades: Trade[];
   entries: Entry[];
   playbook: Playbook;

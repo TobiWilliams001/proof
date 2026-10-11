@@ -6,7 +6,7 @@ import { rFromPrices } from './stats';
 import { linkEarlyNotes } from './link';
 import { uid } from './id';
 import { emptyJournal, storage } from './storage';
-import type { Entry, JournalData, Playbook, QuestionLog, Trade } from './types';
+import { isOpen, type Entry, type JournalData, type Playbook, type QuestionLog, type SyncAccount, type Trade } from './types';
 
 interface JournalApi {
   data: JournalData;
@@ -24,6 +24,12 @@ interface JournalApi {
   setPlaybook(p: Playbook): void;
   logQuestion(q: Omit<QuestionLog, 'id' | 'askedAt'>): void;
   setImprovement(weekStart: string, improvement: string): void;
+  addAccount(a: SyncAccount): void;
+  updateAccount(localId: string, patch: Partial<SyncAccount>): void;
+  /** Stops importing; trades already imported stay, open positions from it are cleared. */
+  removeAccount(localId: string): void;
+  /** Merges one sync result: closed trades added once, open positions replaced. */
+  applySync(localId: string, r: { closed: Trade[]; open: Trade[]; syncedAt: string }): void;
   loadDemo(): void;
   clearAll(): Promise<void>;
 }
@@ -133,6 +139,45 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           ...d,
           reviews: [...d.reviews.filter((r) => r.weekStart !== weekStart), { weekStart, improvement }],
         }));
+      },
+      addAccount(a) {
+        update((d) => ({ ...d, accounts: [...(d.accounts ?? []).filter((x) => x.localId !== a.localId), a] }));
+      },
+      updateAccount(localId, patch) {
+        update((d) => ({ ...d, accounts: (d.accounts ?? []).map((a) => (a.localId === localId ? { ...a, ...patch } : a)) }));
+      },
+      removeAccount(localId) {
+        update((d) => ({
+          ...d,
+          accounts: (d.accounts ?? []).filter((a) => a.localId !== localId),
+          trades: d.trades.filter((t) => !(t.accountId === localId && isOpen(t))),
+        }));
+      },
+      applySync(localId, { closed, open: openNow, syncedAt }) {
+        // A position can't be both closed and open; the closed record wins.
+        const closedIds = new Set(closed.map((t) => t.id));
+        const open = openNow.filter((t) => !closedIds.has(t.id));
+        update((d) => {
+          const account = (d.accounts ?? []).find((a) => a.localId === localId);
+          if (!account) return d;
+          // Remember the first stop seen for each open position.
+          const stops = { ...account.stops };
+          for (const t of open) if (t.platform && t.stop != null && stops[t.platform.positionId] == null) stops[t.platform.positionId] = t.stop;
+          // This account's open positions are replaced by the current list; closed
+          // trades are added once (same id as when they were open, so notes stay linked).
+          const kept = d.trades.filter((t) => !(t.accountId === localId && isOpen(t)));
+          const known = new Set(kept.map((t) => t.id));
+          const newClosed = closed.filter((t) => !known.has(t.id));
+          const trades = [...newClosed, ...open, ...kept].sort((a, b) => b.closedAt.localeCompare(a.closedAt));
+          return {
+            ...d,
+            trades,
+            entries: linkEarlyNotes(d.entries, [...newClosed, ...open]),
+            accounts: (d.accounts ?? []).map((a) =>
+              a.localId === localId ? { ...a, state: 'ok' as const, problem: undefined, lastSyncedAt: syncedAt, lastAttemptAt: syncedAt, stops } : a,
+            ),
+          };
+        });
       },
       loadDemo() {
         setData(buildDemo());

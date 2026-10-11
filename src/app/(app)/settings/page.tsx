@@ -3,6 +3,7 @@
 import { Calculator, ChevronRight, Download, Lock, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { CsvImport } from '@/components/CsvImport';
+import { SyncAccounts } from '@/components/SyncAccounts';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Reveal } from '@/components/motion';
 import { typicalJournalTime } from '@/lib/metrics';
@@ -43,12 +44,11 @@ export default function SettingsPage() {
       </header>
 
       <Reveal className="section" id="accounts" style={{ marginTop: 8 }}>
-        <div className="section-head">
-          <h2 className="section-title">Trading accounts</h2>
-          <span className="chip chip-sm">Read-only</span>
-        </div>
+        <h2 className="section-title" style={{ marginBottom: 12 }}>Trading accounts</h2>
+        <SyncAccounts />
+        <h3 className="section-title" style={{ margin: '24px 0 12px' }}>More platforms</h3>
         <div className="list">
-          {PLATFORMS.map((p) => (
+          {PLATFORMS.filter((p) => p.id !== 'mt5').map((p) => (
             <div key={p.id} className="list-item">
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'block', fontWeight: 550 }}>{p.name}</span>
@@ -59,7 +59,7 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className="faint" style={{ fontSize: 12.5, margin: '10px 4px 14px' }}>
-          Live sync arrives with accounts. Until then, import your platform’s history export — it lands exactly the same way.
+          You can also bring in a history file from any platform.
         </p>
         <CsvImport onImport={addTrades} />
       </Reveal>
