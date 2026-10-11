@@ -26,6 +26,7 @@ npm run build
 | `METAAPI_TOKEN` | Automatic MetaTrader 4/5 import (MetaApi API token) | Settings says automatic import isn't switched on |
 | `SYNC_SECRET` | Locks each connected account reference so only Proof's server can use it (32+ random characters) | Automatic import stays off |
 | `SYNC_MAX_ACCOUNTS` | Cap on connected accounts while there's no sign-in (default 3); each one costs money at MetaApi | Defaults to 3 |
+| `ONBOARDING_WEBHOOK_URL` | Where welcome answers go (a sheet or form service), so you can see who your traders are. Only the answers, no trades or notes | Answers stay on the device |
 | `WAITLIST_WEBHOOK_URL` | Landing-page waitlist (forwards `{ email }` as JSON) | Form says the waitlist isn't open yet |
 
 ## How it's built
