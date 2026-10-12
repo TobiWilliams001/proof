@@ -105,6 +105,8 @@ export interface SyncAccount {
   connectedAt: string;
   /** Stop first seen for each position, R must reflect the risk taken, not a trailed stop. */
   stops: Record<string, number>;
+  /** MetaTrader's own totals for the last 30 days, from the latest hourly check. */
+  platformCheck?: import('./datacheck/reconcile').PlatformCheck;
 }
 
 /** The welcome questions: who the trader is, so Proof fits them (and you learn your audience). */

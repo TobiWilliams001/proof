@@ -6,6 +6,8 @@ import { NEEDS_ACTION, pullMt } from './client';
 
 const EVERY_MS = 2 * 60_000;
 const WHILE_CONNECTING_MS = 20_000;
+/** How often Proof checks its totals against MetaTrader's. */
+const CHECK_EVERY_MS = 60 * 60_000;
 
 /**
  * Keeps connected accounts up to date with no taps: on open, every two minutes
@@ -37,7 +39,8 @@ export function useAutoSync() {
         due.map(async (a) => {
           busy.current.add(a.localId);
           try {
-            const r = await pullMt(a);
+            const checkDue = !a.platformCheck || Date.now() - Date.parse(a.platformCheck.at) >= CHECK_EVERY_MS;
+            const r = await pullMt(a, a.lastSyncedAt, checkDue);
             const at = new Date().toISOString();
             if (r.state === 'ok') applySync(a.localId, r);
             else if (r.state === 'connecting') updateAccount(a.localId, { state: 'connecting', problem: undefined, lastAttemptAt: at });

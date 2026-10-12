@@ -5,6 +5,7 @@ import { buildDemo } from './demo';
 import { rFromPrices, type Stats } from './stats';
 import { resultValue, showResult, type Units } from './units';
 import { applyMerge } from './datacheck/checks';
+import type { PlatformCheck } from './datacheck/reconcile';
 import { linkEarlyNotes } from './link';
 import { emptyAgent, type AgentState } from './rules/notices';
 import { uid } from './id';
@@ -42,7 +43,7 @@ interface JournalApi {
   /** Stops importing; trades already imported stay, open positions from it are cleared. */
   removeAccount(localId: string): void;
   /** Merges one sync result: closed trades added once, open positions replaced. */
-  applySync(localId: string, r: { closed: Trade[]; open: Trade[]; syncedAt: string }): void;
+  applySync(localId: string, r: { closed: Trade[]; open: Trade[]; syncedAt: string; check?: PlatformCheck }): void;
   loadDemo(): void;
   clearAll(): Promise<void>;
 }
@@ -234,7 +235,7 @@ export function JournalProvider({ userId, children }: { userId: string; children
           trades: d.trades.filter((t) => !(t.accountId === localId && isOpen(t))),
         }));
       },
-      applySync(localId, { closed, open: openNow, syncedAt }) {
+      applySync(localId, { closed, open: openNow, syncedAt, check }) {
         // A position can't be both closed and open; the closed record wins.
         const closedIds = new Set(closed.map((t) => t.id));
         const open = openNow.filter((t) => !closedIds.has(t.id));
@@ -246,7 +247,15 @@ export function JournalProvider({ userId, children }: { userId: string; children
           for (const t of open) if (t.platform && t.stop != null && stops[t.platform.positionId] == null) stops[t.platform.positionId] = t.stop;
           // This account's open positions are replaced by the current list; closed
           // trades are added once (same id as when they were open, so notes stay linked).
-          const kept = d.trades.filter((t) => !(t.accountId === localId && isOpen(t)));
+          // The platform owns the numbers: a closed trade it reports again (a late swap,
+          // a corrected fee) is refreshed, keeping what the trader added, like the setup.
+          const fresh = new Map(closed.map((t) => [t.id, t]));
+          const kept = d.trades
+            .filter((t) => !(t.accountId === localId && isOpen(t)))
+            .map((t) => {
+              const f = fresh.get(t.id);
+              return f && t.accountId === localId ? { ...t, pnl: f.pnl, exit: f.exit, size: f.size, closedAt: f.closedAt, platform: f.platform, r: f.r ?? t.r } : t;
+            });
           const known = new Set(kept.map((t) => t.id));
           const newClosed = closed.filter((t) => !known.has(t.id));
           const trades = [...newClosed, ...open, ...kept].sort((a, b) => b.closedAt.localeCompare(a.closedAt));
@@ -255,7 +264,9 @@ export function JournalProvider({ userId, children }: { userId: string; children
             trades,
             entries: linkEarlyNotes(d.entries, [...newClosed, ...open]),
             accounts: (d.accounts ?? []).map((a) =>
-              a.localId === localId ? { ...a, state: 'ok' as const, problem: undefined, lastSyncedAt: syncedAt, lastAttemptAt: syncedAt, stops } : a,
+              a.localId === localId
+                ? { ...a, state: 'ok' as const, problem: undefined, lastSyncedAt: syncedAt, lastAttemptAt: syncedAt, stops, ...(check ? { platformCheck: check } : {}) }
+                : a,
             ),
           };
         });
