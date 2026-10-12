@@ -8,7 +8,7 @@ import { refineWithAI } from '@/lib/ai-client';
 import { fmt } from '@/lib/format';
 import { recordJournalTime } from '@/lib/metrics';
 import { useDictation } from '@/lib/speech';
-import { useJournal } from '@/lib/store';
+import { useJournal, useUnits } from '@/lib/store';
 import { useNow } from '@/lib/useNow';
 import { detectKind, structureNote, type Clarify } from '@/lib/structure';
 import { isOpen, KIND_LABEL, type EntryKind, type Structured, type Trade } from '@/lib/types';
@@ -59,6 +59,7 @@ export function Composer({
   docked?: boolean;
 }) {
   const { data, addEntry, deleteEntry, updateEntry } = useJournal();
+  const u = useUnits();
   const draftKey = `proof.draft.${trade?.id ?? 'journal'}`;
   const [text, setTextRaw] = useState('');
   const startedAt = useRef<number | null>(null);
@@ -246,7 +247,7 @@ export function Composer({
             <Row label="Trade">
               {linked ? (
                 <span className="chip chip-sm chip-on">
-                  <Link2 size={12} /> {linked.symbol} {fmt.side(linked.side).toLowerCase()} · {fmt.r(linked.r)}
+                  <Link2 size={12} /> {linked.symbol} {fmt.side(linked.side).toLowerCase()} · {u.show(linked.r, linked.pnl)}
                   {!trade && (
                     <button aria-label="Unlink" onClick={() => edit((d) => ({ ...d, tradeId: undefined }))}>
                       <X size={12} />
@@ -256,7 +257,7 @@ export function Composer({
               ) : (
                 candidate && (
                   <button className="chip chip-sm chip-outline" onClick={() => edit((d) => ({ ...d, tradeId: candidate.id }))}>
-                    <Link2 size={12} /> Link to {candidate.symbol} {fmt.side(candidate.side).toLowerCase()} {fmt.r(candidate.r)} · {fmt.relative(candidate.closedAt, now)}
+                    <Link2 size={12} /> Link to {candidate.symbol} {fmt.side(candidate.side).toLowerCase()} {u.show(candidate.r, candidate.pnl)} · {fmt.relative(candidate.closedAt, now)}
                   </button>
                 )
               )}
@@ -393,7 +394,7 @@ export function Composer({
       <div className={`${s.box} ${s.congruence}`}>
         <p className={s.congruenceQ}>Did you follow your plan?</p>
         <p className={s.congruenceSub}>
-          {askPlan.trade.symbol} {askPlan.trade.side} · {askPlan.trade.r != null ? fmt.r(askPlan.trade.r) : fmt.pnl(askPlan.trade.pnl)}
+          {askPlan.trade.symbol} {askPlan.trade.side} · {u.show(askPlan.trade.r, askPlan.trade.pnl)}
         </p>
         {plan && <blockquote className={s.planQuote}>Your plan: “{plan.text}”</blockquote>}
         <div className={s.congruenceActions}>

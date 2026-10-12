@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { fmt, sessionFor } from '@/lib/format';
 import { uid } from '@/lib/id';
 import { rFromPrices } from '@/lib/stats';
+import { useUnits } from '@/lib/store';
 import { normalizeSymbol } from '@/lib/structure';
 import type { Playbook, Side, Trade } from '@/lib/types';
 
@@ -21,6 +22,8 @@ function parseNum(v: string): number | null {
  * "Still open" records a position so its plan can be captured before the outcome.
  */
 export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t: Trade) => void }) {
+  // R is still worked out from the stop; the box to type it only shows for traders who use R.
+  const showR = useUnits().units !== 'money';
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const [state, setState] = useState<'closed' | 'open'>('closed');
@@ -97,20 +100,22 @@ export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t
             <input className="input num" inputMode="text" value={f.entry} onChange={set('entry')} placeholder="1.2650" required />
           </label>
           <label className="field">
-            <span className="label">Stop <span className="faint">(for R later)</span></span>
+            <span className="label">Stop loss <span className="faint">(optional)</span></span>
             <input className="input num" inputMode="text" value={f.stop} onChange={set('stop')} placeholder="1.2680" aria-invalid={!stopOk} />
           </label>
         </div>
       ) : (
-        <div className="grid-2">
+        <div className={showR ? 'grid-2' : undefined}>
           <label className="field">
-            <span className="label">P&L ($)</span>
+            <span className="label">Profit or loss ($)</span>
             <input className="input num" inputMode="text" enterKeyHint="next" value={f.pnl} onChange={set('pnl')} placeholder="-80 or 240" required aria-invalid={f.pnl !== '' && pnl == null} />
           </label>
-          <label className="field">
-            <span className="label">R <span className="faint">(optional)</span></span>
-            <input className="input num" inputMode="text" value={f.r} onChange={set('r')} placeholder={priceR != null ? fmt.r(priceR) : '2.4 or -1'} aria-invalid={!rOk} />
-          </label>
+          {showR && (
+            <label className="field">
+              <span className="label">R <span className="faint">(optional)</span></span>
+              <input className="input num" inputMode="text" value={f.r} onChange={set('r')} placeholder={priceR != null ? fmt.r(priceR) : '2.4 or -1'} aria-invalid={!rOk} />
+            </label>
+          )}
         </div>
       )}
 
@@ -138,9 +143,9 @@ export function TradeForm({ playbook, onSave }: { playbook: Playbook; onSave: (t
           <div className="grid-2" style={{ marginTop: 10 }}>
             <input className="input num" inputMode="text" value={f.entry} onChange={set('entry')} placeholder="Entry" aria-label="Entry price" />
             <input className="input num" inputMode="text" value={f.exit} onChange={set('exit')} placeholder="Exit" aria-label="Exit price" />
-            <input className="input num" inputMode="text" value={f.stop} onChange={set('stop')} placeholder="Stop" aria-label="Stop price" />
+            <input className="input num" inputMode="text" value={f.stop} onChange={set('stop')} placeholder="Stop loss" aria-label="Stop loss price" />
           </div>
-          {priceR != null && typedR == null && (
+          {showR && priceR != null && typedR == null && (
             <p className="faint" style={{ fontSize: 13, marginTop: 8 }}>
               That’s <span className={`num ${priceR >= 0 ? 'pos' : 'neg'}`}>{fmt.r(priceR)}</span> against your stop.
             </p>

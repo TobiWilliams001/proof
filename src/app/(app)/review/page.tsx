@@ -10,14 +10,16 @@ import { Reveal } from '@/components/motion';
 import { addDays, startOfWeek, ymd } from '@/lib/dates';
 import { fmt } from '@/lib/format';
 import { buildCoachNote, type CoachLine } from '@/lib/coach';
-import { buildWeeklyReview } from '@/lib/review';
-import { useJournal } from '@/lib/store';
+import { buildWeeklyReview, type SetupSummary } from '@/lib/review';
+import { useJournal, useUnits } from '@/lib/store';
+import { Term } from '@/components/Term';
 import { useMounted } from '@/lib/useMounted';
 import type { Entry, Trade } from '@/lib/types';
 import s from './review.module.css';
 
 export default function ReviewPage() {
   const { data, ready, setImprovement } = useJournal();
+  const u = useUnits();
   const [offset, setOffset] = useState(0);
   // "/review?week=-1" opens last week (linked from Journal at the start of a week).
   useEffect(() => {
@@ -28,9 +30,9 @@ export default function ReviewPage() {
   }, []);
   const mounted = useMounted();
   const anchor = useMemo(() => addDays(startOfWeek(new Date()), offset * 7), [offset]);
-  const r = useMemo(() => buildWeeklyReview(data.trades, data.entries, anchor), [data.trades, data.entries, anchor]);
+  const r = useMemo(() => buildWeeklyReview(data.trades, data.entries, anchor, u.units === 'money'), [data.trades, data.entries, anchor, u.units]);
   const tradesById = useMemo(() => new Map(data.trades.map((t) => [t.id, t])), [data.trades]);
-  const coach = useMemo(() => buildCoachNote(data.trades, data.entries, data.playbook, anchor), [data, anchor]);
+  const coach = useMemo(() => buildCoachNote(data.trades, data.entries, data.playbook, anchor, u.units), [data, anchor, u.units]);
 
   const saved = data.reviews.find((x) => x.weekStart === r.weekStart)?.improvement ?? '';
   const [improvement, setImp] = useState(saved);
@@ -45,6 +47,8 @@ export default function ReviewPage() {
   const label = offset === 0 ? 'This week' : offset === -1 ? 'Last week' : range;
   const empty = ready && r.stats.count === 0 && !r.missed.length && !r.reflections.length && !r.plans.length;
   const hasTrades = r.stats.count > 0;
+  const result = u.split(r.stats.rCount ? r.stats.totalR : null, r.stats.pnl);
+  const avg = u.split(r.stats.avgR, hasTrades ? r.stats.pnl / r.stats.count : null);
 
   return (
     <div className="page">
@@ -84,14 +88,14 @@ export default function ReviewPage() {
         <>
           <Chapter n={1} title="Results">
             <div className="stats">
-              <Stat label="Net R" value={fmt.r(r.stats.totalR)} tone={r.stats.totalR >= 0 ? 'pos' : 'neg'} />
-              <Stat label="P&L" value={fmt.pnl(r.stats.pnl)} tone={r.stats.pnl >= 0 ? 'pos' : 'neg'} />
-              <Stat label="Win rate" value={hasTrades ? fmt.pct(r.stats.winRate) : 'None yet'} sub={`${r.stats.wins}W · ${r.stats.losses}L${r.stats.breakeven ? ` · ${r.stats.breakeven}BE` : ''}`} />
-              <Stat label="Avg R" value={fmt.r(r.stats.avgR)} sub={`best ${fmt.r(r.stats.bestR)} · worst ${fmt.r(r.stats.worstR)}`} />
+              <Stat label="Result" value={result.main} sub={result.sub ?? undefined} tone={u.totalValue(r.stats) >= 0 ? 'pos' : 'neg'} />
+              <Stat label="Trades" value={String(r.stats.count)} sub={`${r.stats.wins} won · ${r.stats.losses} lost${r.stats.breakeven ? ` · ${r.stats.breakeven} flat` : ''}`} />
+              <Stat label={<Term word="Win rate" />} value={hasTrades ? fmt.pct(r.stats.winRate) : 'None yet'} />
+              <Stat label={<Term word="Average per trade" />} value={hasTrades ? avg.main : 'None yet'} sub={hasTrades ? avg.sub ?? undefined : undefined} tone={hasTrades ? (u.value(r.stats.avgR, r.stats.pnl) >= 0 ? 'pos' : 'neg') : undefined} />
             </div>
-            {hasTrades && (
+            {hasTrades && u.units !== 'money' && r.stats.rCount > 0 && (
               <div className="card" style={{ marginTop: 12 }}>
-                <div className={s.cardHead}>How your trades landed in R, {offset === 0 ? 'this week' : offset === -1 ? 'last week' : range}</div>
+                <div className={s.cardHead}>How your trades landed in <Term word="R" />, {offset === 0 ? 'this week' : offset === -1 ? 'last week' : range}</div>
                 <RBars bins={r.distribution} />
               </div>
             )}
@@ -130,7 +134,7 @@ export default function ReviewPage() {
               title="Missed trades"
               items={r.missed}
               tradesById={tradesById}
-              aside={r.missedR ? `${fmt.r(r.missedR)} missed` : undefined}
+              aside={r.missedR && u.units !== 'money' ? `${fmt.r(r.missedR)} missed` : undefined}
             />
           </Chapter>
 
@@ -200,7 +204,7 @@ function Chapter({ n, title, children }: { n: number; title: string; children: R
   );
 }
 
-function Stat({ label, value, tone, sub }: { label: string; value: string; tone?: 'pos' | 'neg'; sub?: string }) {
+function Stat({ label, value, tone, sub }: { label: React.ReactNode; value: string; tone?: 'pos' | 'neg'; sub?: string }) {
   return (
     <div className="stat">
       <div className="stat-label">{label}</div>
@@ -228,13 +232,15 @@ function Meter({ label, value, display, sub }: { label: string; value: number | 
   );
 }
 
-function SetupCard({ title, s: x }: { title: string; s: { name: string; totalR: number; count: number } }) {
+function SetupCard({ title, s: x }: { title: string; s: SetupSummary }) {
+  const u = useUnits();
+  const v = u.split(x.stats.rCount ? x.totalR : null, x.pnl);
   return (
     <div className="card">
       <div className="stat-label">{title}</div>
       <div style={{ fontWeight: 600, marginTop: 4 }}>{x.name}</div>
-      <div className={`num ${x.totalR >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: 20, marginTop: 2 }}>{fmt.r(x.totalR)}</div>
-      <div className="faint" style={{ fontSize: 12 }}>{x.count} trade{x.count === 1 ? '' : 's'}</div>
+      <div className={`num ${u.totalValue(x.stats) >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: 20, marginTop: 2 }}>{v.main}</div>
+      <div className="faint" style={{ fontSize: 12 }}>{x.count} trade{x.count === 1 ? '' : 's'}{v.sub ? ` · ${v.sub}` : ''}</div>
     </div>
   );
 }

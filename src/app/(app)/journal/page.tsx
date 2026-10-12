@@ -12,7 +12,7 @@ import { addDays, startOfDay, startOfWeek, ymd } from '@/lib/dates';
 import { fmt } from '@/lib/format';
 import { buildCoachNote } from '@/lib/coach';
 import { computeStats } from '@/lib/stats';
-import { useJournal } from '@/lib/store';
+import { useJournal, useUnits } from '@/lib/store';
 import { useMounted } from '@/lib/useMounted';
 import { useNow } from '@/lib/useNow';
 import { closedOnly, isOpen, KIND_LABEL, type EntryKind, type Trade } from '@/lib/types';
@@ -30,6 +30,7 @@ function dayLabel(key: string) {
 
 export default function JournalPage() {
   const { data, ready, deleteEntry, loadDemo } = useJournal();
+  const u = useUnits();
   const [filter, setFilter] = useState<EntryKind | 'all'>('all');
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -56,11 +57,11 @@ export default function JournalPage() {
     const dow = d.getDay(); // Sun 0, Mon 1
     if (dow !== 0 && dow !== 1) return null;
     const week = dow === 1 ? addDays(startOfWeek(d), -7) : d;
-    const lines = buildCoachNote(data.trades, data.entries, data.playbook, week);
+    const lines = buildCoachNote(data.trades, data.entries, data.playbook, week, u.units);
     const headline = lines.find((l) => l.kind === 'pattern' || l.kind === 'compare') ?? lines[0];
     if (!headline || headline.text === 'No trades this week.') return null;
     return { text: headline.text, href: dow === 1 ? '/review?week=-1' : '/review' };
-  }, [data, now]);
+  }, [data, now, u.units]);
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -110,8 +111,8 @@ export default function JournalPage() {
 
       {ready && data.trades.length > 0 && (
         <motion.div className={s.glance} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04, duration: 0.45 }}>
-          <Glance label="Today" value={glance.today.count ? fmt.r(glance.today.totalR) : 'None'} tone={glance.today.totalR} sub={`${glance.today.count} trade${glance.today.count === 1 ? '' : 's'}`} />
-          <Glance label="This week" value={glance.week.count ? fmt.r(glance.week.totalR) : 'None'} tone={glance.week.totalR} sub={glance.week.count ? `${fmt.pct(glance.week.winRate)} win rate` : 'no trades yet'} />
+          <Glance label="Today" value={glance.today.count ? u.total(glance.today) : 'None'} tone={u.totalValue(glance.today)} sub={`${glance.today.count} trade${glance.today.count === 1 ? '' : 's'}`} />
+          <Glance label="This week" value={glance.week.count ? u.total(glance.week) : 'None'} tone={u.totalValue(glance.week)} sub={glance.week.count ? `${fmt.pct(glance.week.winRate)} win rate` : 'no trades yet'} />
           <Glance label="Notes today" value={String(glance.notesToday)} sub={awaiting.length ? `${awaiting.length} trade${awaiting.length === 1 ? '' : 's'} waiting` : 'all caught up'} />
         </motion.div>
       )}
@@ -131,8 +132,8 @@ export default function JournalPage() {
                 ) : (
                   <>
                     closed{' '}
-                    <span className={`num ${(t.r ?? t.pnl) >= 0 ? 'pos' : 'neg'}`}>
-                      {t.r != null ? fmt.r(t.r) : fmt.pnl(t.pnl)}
+                    <span className={`num ${u.value(t.r, t.pnl) >= 0 ? 'pos' : 'neg'}`}>
+                      {u.show(t.r, t.pnl)}
                     </span>
                     . What happened?
                   </>
@@ -280,8 +281,8 @@ export default function JournalPage() {
             ) : (
               <>
                 <div className={s.tradeFacts}>
-                  <Fact label="Result" value={prompted.r != null ? fmt.r(prompted.r) : 'No R'} tone={(prompted.r ?? prompted.pnl) >= 0 ? 'pos' : 'neg'} />
-                  <Fact label="P&L" value={fmt.pnl(prompted.pnl)} />
+                  <Fact label="Result" value={u.show(prompted.r, prompted.pnl)} tone={u.value(prompted.r, prompted.pnl) >= 0 ? 'pos' : 'neg'} />
+                  <Fact label="Opened" value={fmt.time(prompted.openedAt)} />
                   <Fact label="Closed" value={fmt.time(prompted.closedAt)} />
                   <Fact label="Setup" value={prompted.setup ?? 'None'} />
                 </div>
@@ -325,11 +326,13 @@ function Glance({ label, value, sub, tone }: { label: string; value: string; sub
 }
 
 function DaySummary({ trades }: { trades: Trade[] }) {
+  const u = useUnits();
   const st = computeStats(trades);
+  const v = u.totalValue(st);
   return (
     <span className={s.daySummary}>
       {st.count} trade{st.count === 1 ? '' : 's'} ·{' '}
-      <span className={`num ${st.totalR > 0 ? 'pos' : st.totalR < 0 ? 'neg' : ''}`}>{fmt.r(st.totalR)}</span>
+      <span className={`num ${v > 0 ? 'pos' : v < 0 ? 'neg' : ''}`}>{u.total(st)}</span>
     </span>
   );
 }

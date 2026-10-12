@@ -12,7 +12,8 @@ import { TradeForm } from '@/components/TradeForm';
 import { fmt } from '@/lib/format';
 import { computeStats, groupStats, rFromPrices, riskStats, type GroupKey } from '@/lib/stats';
 import { Reveal } from '@/components/motion';
-import { useJournal } from '@/lib/store';
+import { useJournal, useUnits } from '@/lib/store';
+import { Term } from '@/components/Term';
 import { useNow } from '@/lib/useNow';
 import { closedOnly, isOpen, type Trade } from '@/lib/types';
 
@@ -25,7 +26,7 @@ const RANGES = [
 export default function TradesPage() {
   const { data, ready, addTrades, deleteTrade, deleteEntry, closeTrade } = useJournal();
   const [range, setRange] = useState<(typeof RANGES)[number]['id']>('all');
-  const [metric, setMetric] = useState<'r' | 'pnl'>('r');
+  const u = useUnits();
   const [by, setBy] = useState<GroupKey>('setup');
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<Trade | null>(null);
@@ -60,6 +61,9 @@ export default function TradesPage() {
   const stats = useMemo(() => computeStats(trades), [trades]);
   const risk = useMemo(() => riskStats(trades), [trades]);
   const groups = useMemo(() => groupStats(trades, by), [trades, by]);
+  // The Show results in setting decides. Charts pick one scale, so Both draws money.
+  const metric: 'r' | 'pnl' = u.units === 'r' && stats.rCount > 0 ? 'r' : 'pnl';
+  if (metric === 'pnl') groups.sort((a, b) => b.stats.pnl - a.stats.pnl);
   const notesByTrade = useMemo(() => {
     const m = new Map<string, number>();
     for (const e of data.entries) if (e.tradeId) m.set(e.tradeId, (m.get(e.tradeId) ?? 0) + 1);
@@ -111,11 +115,6 @@ export default function TradesPage() {
                 <button key={r.id} aria-pressed={range === r.id} onClick={() => setRange(r.id)}>{r.label}</button>
               ))}
             </div>
-            <span className="spacer" />
-            <div className="seg" role="group" aria-label="Unit">
-              <button aria-pressed={metric === 'r'} onClick={() => setMetric('r')}>R</button>
-              <button aria-pressed={metric === 'pnl'} onClick={() => setMetric('pnl')}>$</button>
-            </div>
           </div>
 
           <AnimatePresence mode="wait" initial={false}>
@@ -124,19 +123,15 @@ export default function TradesPage() {
           <div className="stats">
             <div className="stat">
               <div className="stat-label">Net</div>
-              <div className={`stat-value ${(metric === 'r' ? stats.totalR : stats.pnl) >= 0 ? 'pos' : 'neg'}`}>
-                {metric === 'r' ? fmt.r(stats.totalR) : fmt.pnl(stats.pnl)}
-              </div>
+              <Big v={u.split(stats.rCount ? stats.totalR : null, stats.pnl)} tone={u.totalValue(stats)} />
             </div>
             <div className="stat">
-              <div className="stat-label">Win rate</div>
+              <div className="stat-label"><Term word="Win rate" /></div>
               <div className="stat-value">{stats.count ? fmt.pct(stats.winRate) : 'None yet'}</div>
             </div>
             <div className="stat">
-              <div className="stat-label">Per trade</div>
-              <div className={`stat-value ${(metric === 'r' ? risk.expectancyR ?? 0 : risk.expectancyMoney ?? 0) >= 0 ? 'pos' : 'neg'}`}>
-                {metric === 'r' ? fmt.r(risk.expectancyR) : fmt.pnl(risk.expectancyMoney ?? 0)}
-              </div>
+              <div className="stat-label"><Term word="Average per trade" /></div>
+              <Big v={u.split(risk.expectancyR, risk.expectancyMoney)} tone={u.value(risk.expectancyR, risk.expectancyMoney)} />
             </div>
             <div className="stat">
               <div className="stat-label">Trades</div>
@@ -148,7 +143,7 @@ export default function TradesPage() {
           {stats.count > 0 && (
             <div className="mini-stats">
               <div>
-                <span>Drawdown</span>
+                <span><Term word="Biggest dip" /></span>
                 <strong className="num">{metric === 'r' ? `${risk.maxDrawdownR.toFixed(1)}R` : fmt.money(risk.maxDrawdownMoney)}</strong>
               </div>
               <div>
@@ -156,20 +151,20 @@ export default function TradesPage() {
                 <strong className="num">{risk.longestLosingStreak}</strong>
               </div>
               <div>
-                <span>Recovery</span>
+                <span><Term word="Recovery" /></span>
                 <strong>{risk.maxDrawdownMoney === 0 ? 'None needed' : risk.recovered ? `${risk.recoveryTrades} trades` : 'Not yet'}</strong>
               </div>
             </div>
           )}
 
           <Reveal className="section">
-            <h2 className="section-title" style={{ marginBottom: 12 }}>How your {metric === 'r' ? 'R' : 'account'} has grown, {rangeLabel}</h2>
+            <h2 className="section-title" style={{ marginBottom: 12 }}>How your {metric === 'r' ? <Term word="R" /> : 'account'} has grown, {rangeLabel}</h2>
             <div className="card"><EquityCurve trades={trades} metric={metric} /></div>
           </Reveal>
 
           <Reveal className="section">
             <div className="section-head">
-              <h2 className="section-title">Where your {metric === 'r' ? 'R' : 'money'} comes from, by {byLabel}</h2>
+              <h2 className="section-title">Where your {metric === 'r' ? <Term word="R" /> : 'money'} comes from, by {byLabel}</h2>
               <div className="seg" role="group" aria-label="Group by">
                 {(['setup', 'symbol', 'session'] as const).map((k) => (
                   <button key={k} aria-pressed={by === k} onClick={() => setBy(k)}>
@@ -186,11 +181,11 @@ export default function TradesPage() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 550 }}>{g.name}</div>
                       <div className="faint" style={{ fontSize: 12 }}>
-                        {g.stats.count} trades · {fmt.pct(g.stats.winRate)} win · {fmt.r(g.stats.avgR)} avg
+                        {g.stats.count} trade{g.stats.count === 1 ? '' : 's'} · {fmt.pct(g.stats.winRate)} won · {u.avg(g.stats)} a trade
                       </div>
                     </div>
                     <div className={`num ${v >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: 16, alignSelf: 'center' }}>
-                      {metric === 'r' ? fmt.r(v) : fmt.pnl(v)}
+                      {u.total(g.stats)}
                     </div>
                     <div style={{ gridColumn: '1 / -1', height: 4, borderRadius: 4, background: 'var(--surface-2)', overflow: 'hidden' }}>
                       <div
@@ -285,8 +280,8 @@ export default function TradesPage() {
         {open && !isOpen(open) && (
           <div className="stack">
             <div className="stats" style={{ gridTemplateColumns: 'repeat(2, minmax(0,1fr))' }}>
-              <div className="stat"><div className="stat-label">Result</div><div className={`stat-value ${(open.r ?? open.pnl) >= 0 ? 'pos' : 'neg'}`}>{fmt.r(open.r)}</div></div>
-              <div className="stat"><div className="stat-label">P&L</div><div className="stat-value">{fmt.pnl(open.pnl)}</div></div>
+              <div className="stat"><div className="stat-label">Result</div><Big v={u.split(open.r, open.pnl)} tone={u.value(open.r, open.pnl)} /></div>
+              <div className="stat"><div className="stat-label">Opened</div><div className="stat-value" style={{ fontSize: 15 }}>{fmt.date(open.openedAt)} {fmt.time(open.openedAt)}</div></div>
               <div className="stat"><div className="stat-label">Entry → exit</div><div className="stat-value" style={{ fontSize: 15 }}>{open.entry || '?'} → {open.exit || '?'}</div></div>
               <div className="stat"><div className="stat-label">Closed</div><div className="stat-value" style={{ fontSize: 15 }}>{fmt.date(open.closedAt)} {fmt.time(open.closedAt)}</div></div>
             </div>
@@ -344,6 +339,7 @@ function CloseTrade({ trade, onClose }: { trade: Trade; onClose: (c: { exit: num
   const x = toNum(exit);
   const p = toNum(pnl);
   const r = x != null ? rFromPrices(trade.side, trade.entry, trade.stop, x) : null;
+  const showR = useUnits().units !== 'money';
   return (
     <form
       className="card card-quiet stack"
@@ -357,8 +353,18 @@ function CloseTrade({ trade, onClose }: { trade: Trade; onClose: (c: { exit: num
         <input className="input num" inputMode="text" placeholder="Exit price" value={exit} onChange={(e) => setExit(e.target.value)} aria-label="Exit price" />
         <input className="input num" inputMode="text" placeholder="P&L, e.g. -80" value={pnl} onChange={(e) => setPnl(e.target.value)} aria-label="Profit or loss" />
       </div>
-      {r != null && <p className="faint" style={{ fontSize: 13 }}>That’s <span className={`num ${r >= 0 ? 'pos' : 'neg'}`}>{fmt.r(r)}</span> against your stop.</p>}
+      {showR && r != null && <p className="faint" style={{ fontSize: 13 }}>That’s <span className={`num ${r >= 0 ? 'pos' : 'neg'}`}>{fmt.r(r)}</span> against your stop.</p>}
       <button className="btn btn-primary btn-block" disabled={x == null || p == null}>Mark as closed</button>
     </form>
+  );
+}
+
+/** A headline number, with R underneath when showing both. */
+function Big({ v, tone }: { v: { main: string; sub: string | null }; tone: number }) {
+  return (
+    <>
+      <div className={`stat-value ${tone >= 0 ? 'pos' : 'neg'}`}>{v.main}</div>
+      {v.sub && <div className="faint num" style={{ fontSize: 12.5, marginTop: 2 }}>{v.sub}</div>}
+    </>
   );
 }
