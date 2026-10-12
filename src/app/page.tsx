@@ -50,6 +50,7 @@ const FAQ = [
   ['Do I have to talk to it?', 'No. Type or speak, whatever suits the moment.'],
   ['Does it work with prop-firm accounts?', 'Yes, if your firm uses MetaTrader 4 or 5. Connect with your investor password, the view-only one your firm gives you.'],
   ['Will it tell me how to trade?', 'No. Your strategy stays yours. Proof shows you, with evidence, what’s working in it and what isn’t.'],
+  ['Where is my journal stored?', 'For now, on your device. You can export or delete it any time. Syncing across devices is coming.'],
   ['What does it cost?', 'Free during early access.'],
 ];
 
@@ -214,7 +215,7 @@ export default function Landing() {
           <div className={s.trust}>
             <Reveal><h2 className={s.h2}>Answers you can trust.</h2></Reveal>
             <p className={s.body}>
-              Proof never makes up a number. Every figure is calculated from your actual trades, and every answer shows the trades it came from. If your data can’t answer a question, Proof tells you.
+              Proof never makes up a number. Every figure is calculated from your actual trades, and every answer shows the trades it came from. If your data can’t answer a question, Proof tells you. And when something looks worth changing, it suggests a small experiment to try, not an order.
             </p>
           </div>
           <div className={s.trust}>
