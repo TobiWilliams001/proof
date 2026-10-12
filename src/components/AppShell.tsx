@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useJournal } from '@/lib/store';
 import { NEEDS_ACTION, SYNC_PROBLEM } from '@/lib/sync/client';
 import { useAutoSync } from '@/lib/sync/useAutoSync';
+import { useRuleWatcher } from '@/lib/rules/useRuleWatcher';
 import { Logo } from './Logo';
 import { MotionRoot, SPRING } from './motion';
 import { ThemeToggle } from './ThemeSwitch';
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { data, ready, saveFailed } = useJournal();
   useAutoSync();
+  useRuleWatcher();
   // Only problems the trader must fix get a banner; temporary ones retry quietly.
   const broken = (data.accounts ?? []).find((a) => a.state === 'error' && a.problem && NEEDS_ACTION.has(a.problem));
   const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
