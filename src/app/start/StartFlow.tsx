@@ -29,8 +29,9 @@ function problemFor(err: { status?: number; code?: string; message?: string } | 
 }
 
 /**
- * Sign up and sign in are one flow: email, then the code from the email.
- * A code (not a link) keeps the trader inside the installed app on iPhone.
+ * Sign up and sign in are one flow: email, then the link in the email. The
+ * email can also carry a code (custom email templates), which keeps the trader
+ * inside the installed app on iPhone, so a code box sits behind a small option.
  */
 export function StartFlow() {
   const { ready, session } = useAuth();
@@ -41,6 +42,14 @@ export function StartFlow() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
+  const [useCode, setUseCode] = useState(false);
+
+  // An old or already-used link lands back here; say so plainly.
+  useEffect(() => {
+    // Reading the URL once after mount; it isn't available during prerender.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (new URLSearchParams(window.location.search).get('link') === 'expired') setProblem('That sign-in link has expired or was already used. Send yourself a new one.');
+  }, []);
 
   useEffect(() => {
     if (ready && session) router.replace(nextPath());
@@ -71,6 +80,7 @@ export function StartFlow() {
     }
     setEmail(address);
     setCode('');
+    setUseCode(false);
     setStep('code');
     setWait(RESEND_AFTER);
   }
@@ -111,7 +121,7 @@ export function StartFlow() {
               }}
             >
               <h1 className={s.title}>Get started</h1>
-              <p className={s.sub}>Enter your email and we’ll send you a code. No password to remember.</p>
+              <p className={s.sub}>Enter your email and we’ll send you a sign-in link. No password to remember.</p>
               <label className="field">
                 <span className="label">Email</span>
                 <input
@@ -130,7 +140,7 @@ export function StartFlow() {
               </label>
               {problem && <p className={s.problem} role="alert">{problem}</p>}
               <button className="btn btn-primary btn-lg btn-block" disabled={busy || !supabaseConfigured}>
-                {busy ? 'Sending…' : 'Send code'}
+                {busy ? 'Sending…' : 'Send sign-in link'}
               </button>
               {!supabaseConfigured && <p className={s.note}>Sign-up isn’t open yet.</p>}
               <p className={s.note}>New or returning, it’s the same step. Free during early access.</p>
@@ -152,7 +162,16 @@ export function StartFlow() {
                 <ArrowLeft size={15} /> Change email
               </button>
               <h1 className={s.title}>Check your email</h1>
-              <p className={s.sub}>We sent a code to <strong>{email}</strong>. It can take a minute to arrive.</p>
+              <p className={s.sub}>
+                We sent a sign-in link to <strong>{email}</strong>. Tap <strong>Sign in</strong> in the email and you’re in. It can take a minute to arrive.
+              </p>
+              {!useCode && (
+                <button type="button" className={s.link} style={{ alignSelf: 'flex-start' }} onClick={() => setUseCode(true)}>
+                  Got a code instead?
+                </button>
+              )}
+              {useCode && (
+              <>
               <label className="field">
                 <span className="label">Code</span>
                 <input
@@ -175,10 +194,13 @@ export function StartFlow() {
               <button className="btn btn-primary btn-lg btn-block" disabled={busy || digits.length < 6}>
                 {busy ? 'Signing in…' : 'Continue'}
               </button>
+              </>
+              )}
+              {!useCode && problem && <p className={s.problem} role="alert">{problem}</p>}
               <p className={s.note}>
                 No email? Check spam, or{' '}
                 <button type="button" className={s.link} disabled={wait > 0 || busy} onClick={send}>
-                  {wait > 0 ? `send a new code in ${wait}s` : 'send a new code'}
+                  {wait > 0 ? `send a new link in ${wait}s` : 'send a new link'}
                 </button>
                 .
               </p>

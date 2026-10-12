@@ -11,7 +11,10 @@ export function SignedIn({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (ready && !session) router.replace(`/start?next=${encodeURIComponent(window.location.pathname)}`);
+    if (!ready || session) return;
+    // A sign-in link that expired comes back with an error in the address.
+    const expired = /error_code=otp_expired|error=access_denied/.test(window.location.hash + window.location.search);
+    router.replace(`/start?next=${encodeURIComponent(window.location.pathname)}${expired ? '&link=expired' : ''}`);
   }, [ready, session, router]);
 
   if (!ready || !session) {
