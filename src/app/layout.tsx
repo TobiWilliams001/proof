@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import { ServiceWorker } from '@/components/ServiceWorker';
+import { AuthProvider } from '@/lib/auth';
 import { SplashGate } from '@/components/SplashGate';
 import splashImages from './splash-images.json';
 import './globals.css';
@@ -48,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <span>Proof</span>
         </div>
         <SplashGate />
-        {children}
+        <AuthProvider>{children}</AuthProvider>
         <ServiceWorker />
         {/* Cookieless page-view counts on Vercel; no personal data or journal content. */}
         <Analytics />
