@@ -1,4 +1,5 @@
 import 'server-only';
+import Anthropic from '@anthropic-ai/sdk';
 
 /**
  * Provider-agnostic LLM boundary (brief §8). Routes never know which provider
@@ -19,36 +20,37 @@ function parseJSON<T>(text: string): T {
   return JSON.parse(start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned) as T;
 }
 
-function gemini(apiKey: string): LLMProvider {
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+function anthropic(apiKey: string): LLMProvider {
+  // A small, fast model is enough for structuring short notes and playbooks.
+  const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5';
+  const client = new Anthropic({ apiKey, timeout: 15000, maxRetries: 1 });
   return {
-    name: `gemini:${model}`,
+    name: `anthropic:${model}`,
     async json<T>(prompt: string, { temperature = 0.2, maxTokens = 800 } = {}) {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: 'POST',
-          // Header rather than query string keeps the key out of access logs.
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature, maxOutputTokens: maxTokens, responseMimeType: 'application/json' },
-          }),
-          signal: AbortSignal.timeout(15000),
-        },
-      );
-      if (res.status === 429) throw new AIUnavailableError('rate_limited');
-      // Retired model or a project without access: degrade to local structuring, don't error.
-      if (res.status === 403 || res.status === 404) throw new AIUnavailableError('not_configured');
-      if (!res.ok) throw new Error(`Gemini ${res.status}`);
-      const body = await res.json();
-      return parseJSON<T>(body.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+      try {
+        const msg = await client.messages.create({
+          model,
+          max_tokens: maxTokens,
+          temperature,
+          system: 'Reply with one JSON object only. No prose, no code fences.',
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const text = msg.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+        return parseJSON<T>(text);
+      } catch (err) {
+        if (err instanceof Anthropic.RateLimitError) throw new AIUnavailableError('rate_limited');
+        // Bad key, retired model or no access: degrade to local structuring, don't error.
+        if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError || err instanceof Anthropic.NotFoundError) {
+          throw new AIUnavailableError('not_configured');
+        }
+        throw err;
+      }
     },
   };
 }
 
 export function getProvider(): LLMProvider {
-  const key = process.env.GEMINI_API_KEY;
+  const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new AIUnavailableError('not_configured');
-  return gemini(key);
+  return anthropic(key);
 }

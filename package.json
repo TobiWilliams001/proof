@@ -11,6 +11,9 @@
     "eval": "vitest run evals"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@supabase/server": "^1.9.2",
+    "@supabase/supabase-js": "^2.117.3",
     "@vercel/analytics": "^2.0.1",
     "lucide-react": "^0.474.0",
     "motion": "^12.43.0",
