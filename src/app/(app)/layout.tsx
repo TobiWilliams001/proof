@@ -1,10 +1,10 @@
 import { AppShell } from '@/components/AppShell';
-import { JournalProvider } from '@/lib/store';
+import { SignedIn } from '@/components/SignedIn';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <JournalProvider>
+    <SignedIn>
       <AppShell>{children}</AppShell>
-    </JournalProvider>
+    </SignedIn>
   );
 }

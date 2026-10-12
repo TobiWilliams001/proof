@@ -1,0 +1,65 @@
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+}
+.top {
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 18px 0;
+}
+.main {
+  flex: 1;
+  display: grid;
+  align-items: start;
+  padding-top: 8vh;
+}
+.card {
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.title {
+  font-size: clamp(28px, 7vw, 34px);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+.sub {
+  color: var(--ink-2);
+  font-size: 15.5px;
+  line-height: 1.5;
+  margin-top: -6px;
+}
+.sub strong { color: var(--ink); font-weight: 550; word-break: break-all; }
+.code {
+  font-size: 22px;
+  letter-spacing: 0.3em;
+  text-align: center;
+  height: 56px;
+}
+.problem {
+  color: var(--neg-text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.note {
+  color: var(--ink-3);
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-align: center;
+}
+.back { align-self: flex-start; margin-left: -10px; }
+.link {
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link:disabled { color: var(--ink-3); text-decoration: none; }
