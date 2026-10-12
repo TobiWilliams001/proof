@@ -33,7 +33,7 @@ npm run build
 ### Supabase setup (once)
 
 1. SQL editor: run `supabase/migrations/0001_accounts.sql` (journals and profiles tables, row level security).
-2. Authentication → Emails: in both **Confirm signup** and **Magic link** templates, include the code: `{{ .Token }}`.
+2. Sign-in works from the link in the email. To also send a code (stays inside the installed iPhone app), add custom SMTP, then put `{{ .Token }}` in the **Confirm signup** and **Magic link** templates.
 3. Authentication → URL Configuration: set the Site URL to your Vercel URL and add it (and `http://localhost:3000/**`) to Redirect URLs.
 4. The built-in email sender allows only a few emails an hour. Before real testers, add custom SMTP (for example Resend) under Authentication → SMTP.
 
