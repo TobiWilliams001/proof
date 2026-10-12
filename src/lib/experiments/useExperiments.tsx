@@ -1,9 +1,11 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useNow } from '../useNow';
 import { useJournal } from '../store';
 import { baselineFor } from './plan';
 import { createExperiment, listExperiments, updateExperiment } from './repo';
+import { progressOf, resultOf, type Progress } from './track';
 import type { Experiment, Plan, Result } from './types';
 
 interface ExperimentsApi {
@@ -14,6 +16,10 @@ interface ExperimentsApi {
   finish(id: string, result: Result): Promise<boolean>;
   abandon(id: string): Promise<boolean>;
   rate(id: string, useful: boolean): Promise<boolean>;
+  /** Keep doing the change after the report, or drop it. */
+  decide(id: string, kept: boolean): Promise<boolean>;
+  /** Where the running experiment stands now. */
+  progress: Progress | null;
 }
 
 const Ctx = createContext<ExperimentsApi | null>(null);
@@ -22,6 +28,11 @@ export function ExperimentsProvider({ children }: { children: React.ReactNode })
   const { data } = useJournal();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [ready, setReady] = useState(false);
+  const now = useNow(60_000);
+  const progress = useMemo(() => {
+    const e = experiments.find((x) => x.status === 'running');
+    return e ? progressOf(e, { trades: data.trades, entries: data.entries }, new Date(now)) : null;
+  }, [experiments, data.trades, data.entries, now]);
 
   useEffect(() => {
     listExperiments()
@@ -63,8 +74,22 @@ export function ExperimentsProvider({ children }: { children: React.ReactNode })
       finish: (id, result) => patch(id, { status: 'complete', result, endAt: new Date().toISOString() }),
       abandon: (id) => patch(id, { status: 'abandoned', endAt: new Date().toISOString() }),
       rate: (id, useful) => patch(id, { useful }),
+      decide: (id, kept) => {
+        const e = experiments.find((x) => x.id === id);
+        return e?.result ? patch(id, { result: { ...e.result, kept } }) : Promise.resolve(false);
+      },
+      progress,
     };
-  }, [experiments, ready, data.trades]);
+  }, [experiments, ready, data.trades, progress]);
+
+  // The agent finishes a due experiment itself, so the report is waiting.
+  const running = experiments.find((e) => e.status === 'running');
+  const finishing = useRef<string | null>(null);
+  useEffect(() => {
+    if (!running || !progress?.done || finishing.current === running.id) return;
+    finishing.current = running.id;
+    api.finish(running.id, resultOf(progress));
+  }, [running, progress, api]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
