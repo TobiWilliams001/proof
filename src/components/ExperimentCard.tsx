@@ -35,7 +35,7 @@ export function ExperimentCard() {
           <div className={s.progress} aria-label={progress.label}>
             <motion.span
               initial={false}
-              animate={{ width: `${Math.min(100, (progress.matched.length / (running.length.kind === 'trades' ? running.length.value : Math.max(1, progress.matched.length))) * 100)}%` }}
+              animate={{ width: `${progress.fraction * 100}%` }}
               transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
             />
           </div>

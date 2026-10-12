@@ -20,6 +20,8 @@ export interface Progress {
   done: boolean;
   /** "6 of 10 trades" or "Day 4 of 14". */
   label: string;
+  /** How far along, 0 to 1, for a progress bar. */
+  fraction: number;
 }
 
 /** Does this trade go against the change? Decided from the data alone. */
@@ -53,10 +55,24 @@ export function progressOf(e: Experiment, ctx: JournalContext, now: Date): Progr
   const kept = matched.filter((t) => !against.has(t.id));
 
   if (e.length.kind === 'trades') {
-    return { matched, breaks: [...against], kept, done: matched.length >= e.length.value, label: `${matched.length} of ${e.length.value} trades` };
+    return {
+      matched,
+      breaks: [...against],
+      kept,
+      done: matched.length >= e.length.value,
+      label: `${matched.length} of ${e.length.value} trades`,
+      fraction: Math.min(1, matched.length / e.length.value),
+    };
   }
   const day = Math.min(e.length.value, Math.floor((now.getTime() - new Date(start).getTime()) / 864e5) + 1);
-  return { matched, breaks: [...against], kept, done: !!end && now.toISOString() >= end, label: `Day ${day} of ${e.length.value}` };
+  return {
+    matched,
+    breaks: [...against],
+    kept,
+    done: !!end && now.toISOString() >= end,
+    label: `Day ${day} of ${e.length.value}`,
+    fraction: Math.min(1, Math.max(0, (now.getTime() - new Date(start).getTime()) / (e.length.value * 864e5))),
+  };
 }
 
 /** Under 5 kept trades there's no evidence either way, and Proof says so. */

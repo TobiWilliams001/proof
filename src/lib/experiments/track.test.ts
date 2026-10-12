@@ -39,7 +39,9 @@ describe('matching trades to an experiment', () => {
 
   it('runs a days-long experiment by the calendar', () => {
     const e = experiment({ kind: 'followPlan' }, { kind: 'days', value: 14 });
-    expect(progressOf(e, { trades: [], entries: [] }, new Date(at(13, 12))).label).toBe('Day 4 of 14');
+    const mid = progressOf(e, { trades: [], entries: [] }, new Date(at(13, 12)));
+    expect(mid.label).toBe('Day 4 of 14');
+    expect(mid.fraction).toBeCloseTo(3.5 / 14);
     expect(progressOf(e, { trades: [], entries: [] }, new Date(at(24, 1))).done).toBe(true);
   });
 });
