@@ -125,6 +125,8 @@ export interface JournalData {
   units?: 'money' | 'r' | 'both';
   accounts?: SyncAccount[];
   profile?: TraderProfile;
+  /** What Proof has already said about the trader's rules, and draft notes waiting for them. */
+  agent?: import('./rules/notices').AgentState;
   trades: Trade[];
   entries: Entry[];
   playbook: Playbook;

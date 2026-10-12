@@ -5,6 +5,7 @@ import { buildDemo } from './demo';
 import { rFromPrices, type Stats } from './stats';
 import { resultValue, showResult, type Units } from './units';
 import { linkEarlyNotes } from './link';
+import { emptyAgent, type AgentState } from './rules/notices';
 import { uid } from './id';
 import { cloudProvider, emptyJournal, MERGED_EVENT } from './storage';
 import { supabase } from './supabase/client';
@@ -26,6 +27,11 @@ interface JournalApi {
   setPlaybook(p: Playbook): void;
   setProfile(p: TraderProfile): void;
   setUnits(u: Units): void;
+  setAgent(a: AgentState): void;
+  dismissNotice(ruleId: string, day: string): void;
+  /** Saves a drafted rule-break note as a real entry, in the trader's (possibly edited) words. */
+  saveDraft(id: string, text: string): void;
+  dismissDraft(id: string): void;
   logQuestion(q: Omit<QuestionLog, 'id' | 'askedAt'>): void;
   setImprovement(weekStart: string, improvement: string): void;
   addAccount(a: SyncAccount): void;
@@ -163,6 +169,34 @@ export function JournalProvider({ userId, children }: { userId: string; children
       },
       setUnits(units) {
         update((d) => ({ ...d, units }));
+      },
+      setAgent(agent) {
+        update((d) => ({ ...d, agent }));
+      },
+      dismissNotice(ruleId, day) {
+        update((d) => {
+          const a = d.agent ?? emptyAgent();
+          return { ...d, agent: { ...a, notices: a.notices.map((n) => (n.ruleId === ruleId && n.day === day ? { ...n, dismissed: true } : n)) } };
+        });
+      },
+      saveDraft(id, text) {
+        update((d) => {
+          const a = d.agent ?? emptyAgent();
+          const draft = a.drafts.find((x) => x.id === id);
+          if (!draft || draft.status !== 'pending') return d;
+          const entry: Entry = { id: uid('e_'), kind: 'rule_break', text: text.trim() || draft.text, tradeId: draft.tradeIds[0], createdAt: new Date().toISOString() };
+          return {
+            ...d,
+            entries: [entry, ...d.entries],
+            agent: { ...a, drafts: a.drafts.map((x) => (x.id === id ? { ...x, status: 'saved' as const } : x)) },
+          };
+        });
+      },
+      dismissDraft(id) {
+        update((d) => {
+          const a = d.agent ?? emptyAgent();
+          return { ...d, agent: { ...a, drafts: a.drafts.map((x) => (x.id === id ? { ...x, status: 'dismissed' as const } : x)) } };
+        });
       },
       setProfile(profile) {
         update((d) => ({ ...d, profile }));
