@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { EquityCurve } from '@/components/Charts';
+import { HealthCard } from '@/components/HealthCard';
 import { Composer } from '@/components/Composer';
 import { EntryItem, TradeItem } from '@/components/Items';
 import { Sheet } from '@/components/Sheet';
@@ -105,6 +106,7 @@ export default function TradesPage() {
         </div>
       ) : (
         <>
+          <HealthCard />
           <div className="seg" role="tablist" aria-label="View" style={{ display: 'flex', marginBottom: 12 }}>
             <button role="tab" aria-selected={view === 'insights'} onClick={() => setView('insights')} style={{ flex: 1 }}>Insights</button>
             <button role="tab" aria-selected={view === 'list'} onClick={() => setView('list')} style={{ flex: 1 }}>All trades · {trades.length}</button>
