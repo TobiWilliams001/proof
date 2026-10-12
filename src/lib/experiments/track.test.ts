@@ -4,7 +4,7 @@ import { DEMO_PLAYBOOK } from '../demo';
 import type { Entry, Trade } from '../types';
 import { baselineFor, makePlan } from './plan';
 import { buildReport } from './report';
-import { progressOf, resultOf } from './track';
+import { experimentsDuring, progressOf, resultOf } from './track';
 import type { Change, Experiment, Length } from './types';
 
 let n = 0;
@@ -142,4 +142,19 @@ it('end to end: a suggestion becomes an experiment, is tracked, and reports hone
   expect(report.headline).toMatch(/^Your average per trade was higher than before: \+\$40 a trade/);
   expect(report.lines[1]).toBe('You kept to it on 9 of 10 trades. The one that didn’t is left out of the result.');
   expect(report.confidence).toBe('Observation · 9 trades');
+});
+
+describe('experiments during a week', () => {
+  const base = { ...makePlan({ kind: 'followPlan' }), baseline: { count: 0, winRate: 0, perTradeR: null, perTradeMoney: null, tradeIds: [] } };
+  const e = (id: string, startAt: string, status: Experiment['status'], endAt?: string): Experiment => ({ id, ...base, startAt, status, endAt });
+  it('finds what ran in the week, including one still running', () => {
+    const list = [
+      e('before', '2026-09-01T00:00:00Z', 'complete', '2026-09-10T00:00:00Z'),
+      e('overlap', '2026-10-01T00:00:00Z', 'complete', '2026-10-06T00:00:00Z'),
+      e('running', '2026-10-08T00:00:00Z', 'running'),
+      e('after', '2026-10-20T00:00:00Z', 'abandoned', '2026-10-21T00:00:00Z'),
+    ];
+    const ids = experimentsDuring(list, new Date('2026-10-05T00:00:00Z'), new Date('2026-10-12T00:00:00Z'), new Date('2026-10-15T00:00:00Z')).map((x) => x.id);
+    expect(ids).toEqual(['running', 'overlap']);
+  });
 });

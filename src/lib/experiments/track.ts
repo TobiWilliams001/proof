@@ -73,3 +73,10 @@ export function resultOf(p: Progress): Result {
     confidence: experimentConfidence(p.kept),
   };
 }
+
+/** Experiments that were running at some point between `from` and `to`, newest first. */
+export function experimentsDuring(experiments: Experiment[], from: Date, to: Date, now: Date): Experiment[] {
+  return experiments
+    .filter((e) => Date.parse(e.startAt) < to.getTime() && Date.parse(e.status === 'running' ? now.toISOString() : (e.endAt ?? e.startAt)) >= from.getTime())
+    .sort((a, b) => b.startAt.localeCompare(a.startAt));
+}
