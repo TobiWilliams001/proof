@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, FlaskConical } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RBars } from '@/components/Charts';
@@ -13,6 +13,9 @@ import { buildCoachNote, type CoachLine } from '@/lib/coach';
 import { buildWeeklyReview, type SetupSummary } from '@/lib/review';
 import { useJournal, useUnits } from '@/lib/store';
 import { Term } from '@/components/Term';
+import { StartExperiment } from '@/components/StartExperiment';
+import { ExperimentCard } from '@/components/ExperimentCard';
+import { useExperiments } from '@/lib/experiments/useExperiments';
 import { useMounted } from '@/lib/useMounted';
 import type { Entry, Trade } from '@/lib/types';
 import s from './review.module.css';
@@ -76,6 +79,7 @@ export default function ReviewPage() {
       )}
 
       {ready && !empty && <CoachNote lines={coach} tradesById={tradesById} entries={data.entries} />}
+      {ready && offset === 0 && <ExperimentCard />}
 
       {empty && (
         <div className="empty card">
@@ -293,6 +297,28 @@ function Fold({
  * The review speaks first: a short note from the week's data. Each claim can be
  * opened to show the trades and notes it rests on.
  */
+/** A suggestion, and the one tap that turns it into a tracked experiment. */
+function Suggestion({ line }: { line: CoachLine }) {
+  const { running, ready } = useExperiments();
+  const [starting, setStarting] = useState(false);
+  const same = running && line.experiment && running.insightId === line.experiment.insightId;
+  return (
+    <div className={s.suggestion}>
+      <p>{line.text}</p>
+      {line.experiment && ready && (
+        same ? (
+          <p className={s.suggestionNote}>This experiment is running.</p>
+        ) : !running ? (
+          <button className="btn btn-soft btn-sm" onClick={() => setStarting(true)}>
+            <FlaskConical size={14} /> Start this experiment
+          </button>
+        ) : null
+      )}
+      <StartExperiment open={starting} onClose={() => setStarting(false)} initial={line.experiment} />
+    </div>
+  );
+}
+
 function CoachNote({ lines, tradesById, entries }: { lines: CoachLine[]; tradesById: Map<string, Trade>; entries: Entry[] }) {
   const [open, setOpen] = useState<number | null>(null);
   const suggestion = lines.find((l) => l.kind === 'suggestion');
@@ -324,7 +350,7 @@ function CoachNote({ lines, tradesById, entries }: { lines: CoachLine[]; tradesB
           );
         })}
       </div>
-      {suggestion && <p className={s.suggestion}>{suggestion.text}</p>}
+      {suggestion && <Suggestion line={suggestion} />}
       <AnimatePresence initial={false}>
         {open != null && facts[open] && (
           <motion.div
