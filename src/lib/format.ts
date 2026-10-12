@@ -10,7 +10,8 @@ const cash = (n: number) => (Math.abs(n) >= 100 ? whole : money).format(n);
 
 export const fmt = {
   money: (n: number) => cash(n),
-  pnl: (n: number) => `${n >= 0 ? '+' : '−'}${cash(Math.abs(n))}`,
+  // Zero carries no sign: "+$0" reads like a gain.
+  pnl: (n: number) => (n === 0 ? cash(0) : `${n > 0 ? '+' : '−'}${cash(Math.abs(n))}`),
   r: (r: number | null | undefined) =>
     r == null || Number.isNaN(r) ? 'No R' : `${r > 0 ? '+' : r < 0 ? '−' : ''}${Math.abs(r).toFixed(1)}R`,
   pct: (n: number) => `${Math.round(n * 100)}%`,
