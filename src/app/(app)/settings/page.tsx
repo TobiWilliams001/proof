@@ -1,6 +1,6 @@
 'use client';
 
-import { Calculator, ChevronRight, Compass, UserRound, Download, Lock, Sparkles, Trash2 } from 'lucide-react';
+import { Calculator, ChevronRight, Compass, UserRound, Download, Lock, LogOut, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { CsvImport } from '@/components/CsvImport';
 import { SyncAccounts } from '@/components/SyncAccounts';
@@ -11,6 +11,7 @@ import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Reveal } from '@/components/motion';
 import { typicalJournalTime } from '@/lib/metrics';
 import { useJournal } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
 import { Term } from '@/components/Term';
 import { useMounted } from '@/lib/useMounted';
 import { PLATFORMS } from '@/lib/sync/adapter';
@@ -25,6 +26,7 @@ function download(name: string, body: string, type: string) {
 
 export default function SettingsPage() {
   const { data, addTrades, loadDemo, clearAll, setUnits } = useJournal();
+  const { session, signOut } = useAuth();
   const units = data.units ?? 'money';
   const stamp = new Date().toISOString().slice(0, 10);
   const mounted = useMounted();
@@ -144,7 +146,7 @@ export default function SettingsPage() {
             className="list-item"
             style={{ color: 'var(--neg-text)' }}
             onClick={async () => {
-              if (confirm('Delete every trade, note and setup on this device? This can’t be undone.')) await clearAll();
+              if (confirm('Delete every trade, note and setup in your account? This can’t be undone.')) await clearAll();
             }}
           >
             <Trash2 size={17} />
@@ -153,8 +155,22 @@ export default function SettingsPage() {
         </div>
         <p className="row faint" style={{ fontSize: 12.5, margin: '12px 4px 0', alignItems: 'flex-start' }}>
           <Lock size={13} style={{ marginTop: 3, flex: 'none' }} />
-          Your journal currently lives only in this browser. Proof never keeps recordings of your voice. Only the words are saved.
+          Your journal is saved to your account, and only you can see it. Proof never keeps recordings of your voice. Only the words are saved.
         </p>
+      </Reveal>
+
+      <Reveal className="section">
+        <h2 className="section-title" style={{ marginBottom: 12 }}>Account</h2>
+        <div className="list">
+          <div className="list-item">
+            <UserRound size={17} className="faint" />
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{session?.user.email}</span>
+          </div>
+          <button className="list-item" onClick={() => signOut()}>
+            <LogOut size={17} className="faint" />
+            <span style={{ flex: 1 }}>Sign out</span>
+          </button>
+        </div>
       </Reveal>
     </div>
   );
