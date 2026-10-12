@@ -3,6 +3,7 @@
 **Structure:** AIDA, Attention → Interest → Desire → Action.
 **Core insight:** traders don't buy learning, they buy winning, consistency, profit, passing and keeping funded accounts, and the confidence of being in control. Sell the win. Deliver it through learning.
 **Voice:** calm, honest, trader-to-trader. Natural, not salesy: no hype, no fear hooks, no promises Proof can't keep (passing a challenge, "fixing" anything). No invented numbers or testimonials, example insights are clearly marked as examples until real ones exist. Only claim what is built today.
+**Desire:** write from what traders actually want (consistency, trust in their own edge) without naming it. Show their situation and the outcome, never the feeling ("you open your week knowing which setup to trust", not "feel in control"). No feature lists.
 
 ---
 
@@ -62,8 +63,8 @@ See the habits quietly costing you: trading after losses, oversizing when confid
 **Trade your plan under pressure.**
 For prop traders, consistency matters most. Proof shows whether you're actually following your plan, so a bad week doesn't quietly become a habit.
 
-**Feel in control again.**
-No more guessing whether you're improving. Your weekly review shows where you stand and one small thing to try next.
+**Know where you stand.**
+You open your week already knowing which setup to trust, which to leave alone, and the one small thing worth trying next.
 
 *Questions you can ask your journal* (no example results; Proof never markets outcomes it hasn't measured for you):
 - "How do my trades do in the hour after a loss?"
