@@ -1,3 +1,5 @@
+import { makePlan } from './experiments/plan';
+import type { Plan } from './experiments/types';
 import { addDays, startOfWeek } from './dates';
 import { fmt } from './format';
 import { matchTags } from './structure';
@@ -19,6 +21,8 @@ export interface CoachLine {
   kind: 'summary' | 'pattern' | 'compare' | 'discipline' | 'missed' | 'suggestion';
   /** How much the finding can be trusted, from how many trades it rests on. */
   confidence?: Confidence;
+  /** For a suggestion: the experiment it proposes, ready to start in one tap. */
+  experiment?: { plan: Plan; insightId: string };
 }
 
 const avgR = (ts: Trade[]) => ts.reduce((s, t) => s + (t.r ?? 0), 0);
@@ -113,6 +117,7 @@ export function buildCoachNote(
         text: `Try your next 10 trades checking for “${theme.word}” before you enter, and compare.`,
         tradeIds,
         entryIds: ids,
+        experiment: { plan: makePlan({ kind: 'checkFor', word: theme.word }), insightId: `checkFor:${theme.word}` },
       };
     }
   }
@@ -145,6 +150,7 @@ export function buildCoachNote(
           text: `${worst.name}: ${worst.stats.wins} of ${worst.stats.count} won, ${res(worst.stats.rCount ? worst.stats.totalR : null, worst.stats.pnl)}. Try your next 10 trades without it and compare.`,
           tradeIds: worst.trades.map((t) => t.id),
           entryIds: [],
+          experiment: { plan: makePlan({ kind: 'skipSetup', setup: worst.name }), insightId: `skipSetup:${worst.name}` },
         };
       }
     }
@@ -171,6 +177,7 @@ export function buildCoachNote(
         text: 'Try your next 10 trades taking only the ones that fit your plan, and compare.',
         tradeIds: answered.map((t) => t.id),
         entryIds: [],
+        experiment: { plan: makePlan({ kind: 'followPlan' }), insightId: 'followPlan' },
       };
     }
     lines.push({ kind: 'discipline', text, tradeIds: answered.map((t) => t.id), entryIds: [], confidence });
