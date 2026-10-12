@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import { ExperimentsProvider } from '@/lib/experiments/useExperiments';
 import { RulesProvider } from '@/lib/rules/useRules';
 import { JournalProvider } from '@/lib/store';
 
@@ -28,7 +29,9 @@ export function SignedIn({ children }: { children: React.ReactNode }) {
   // Keyed on the trader, so switching accounts never shows the last person's journal.
   return (
     <JournalProvider key={session.user.id} userId={session.user.id}>
-      <RulesProvider userId={session.user.id}>{children}</RulesProvider>
+      <RulesProvider userId={session.user.id}>
+        <ExperimentsProvider>{children}</ExperimentsProvider>
+      </RulesProvider>
     </JournalProvider>
   );
 }
