@@ -17,6 +17,8 @@ export interface WeeklyReview {
    */
   adherence: number | null;
   adherenceSource: 'answers' | 'rule_breaks' | null;
+  /** Trades that broke a rule this week, logged or detected. */
+  brokenCount: number;
   planAnswered: number;
   ruleBreaks: Entry[];
   missed: Entry[];
@@ -66,7 +68,7 @@ export function themesFrom(entries: Entry[], limit = 6) {
 export interface SetupSummary { name: string; totalR: number; pnl: number; count: number; stats: Stats }
 
 /** byMoney ranks setups by P&L rather than R, for traders who read results in money. */
-export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWeek: Date, byMoney = false): WeeklyReview {
+export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWeek: Date, byMoney = false, ruleBrokenTradeIds: string[] = []): WeeklyReview {
   const start = startOfWeek(anyDayInWeek);
   const end = addDays(start, 7);
   const inWeek = (iso: string) => iso >= start.toISOString() && iso < end.toISOString();
@@ -78,7 +80,8 @@ export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWee
 
   // Only breaks tied to this week's trades (or unlinked ones written this week) count.
   const weekTradeIds = new Set(weekTrades.map((t) => t.id));
-  const brokenTradeIds = new Set(ruleBreaks.map((e) => e.tradeId).filter((id) => id && weekTradeIds.has(id)));
+  // Breaks the trader logged, plus trades Proof saw go past one of their rules.
+  const brokenTradeIds = new Set([...ruleBreaks.map((e) => e.tradeId), ...ruleBrokenTradeIds].filter((id) => id && weekTradeIds.has(id)));
   const unlinkedBreaks = ruleBreaks.filter((e) => !e.tradeId).length;
   const broken = Math.min(weekTrades.length, brokenTradeIds.size + unlinkedBreaks);
 
@@ -114,6 +117,7 @@ export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWee
       };
     })(),
     ruleBreaks,
+    brokenCount: broken,
     missed,
     missedR: missed.reduce((sum, e) => sum + (e.structured?.r ?? 0), 0),
     plans: weekEntries.filter((e) => e.kind === 'plan'),

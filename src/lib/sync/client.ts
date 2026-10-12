@@ -1,5 +1,6 @@
 'use client';
 
+import type { PlatformCheck } from '../datacheck/reconcile';
 import type { SyncAccount, Trade } from '../types';
 import { authedFetch } from '../supabase/client';
 
@@ -38,13 +39,14 @@ export async function connectMt(input: {
 }
 
 export type PullResult =
-  | { state: 'ok'; syncedAt: string; closed: Trade[]; open: Trade[] }
+  | { state: 'ok'; syncedAt: string; closed: Trade[]; open: Trade[]; check?: PlatformCheck }
   | { state: 'connecting' }
   | { state: 'error'; problem: string };
 
-export async function pullMt(a: SyncAccount): Promise<PullResult> {
+/** Imports from the last sync, or from `since` to fill a gap. Duplicates are skipped when merged in. */
+export async function pullMt(a: SyncAccount, since = a.lastSyncedAt, check = false): Promise<PullResult> {
   try {
-    return await post<PullResult>('/api/sync/mt/pull', { sealed: a.sealed, since: a.lastSyncedAt, sightedStops: a.stops });
+    return await post<PullResult>('/api/sync/mt/pull', { sealed: a.sealed, since, sightedStops: a.stops, check });
   } catch {
     return { state: 'error', problem: 'offline' };
   }

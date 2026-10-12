@@ -1,0 +1,9 @@
+.block { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.head { display: flex; align-items: center; gap: 8px; }
+.icon { color: var(--accent); }
+.rule { flex-direction: column; align-items: flex-start; gap: 8px; }
+.ruleTop { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; width: 100%; }
+.ruleName { font-weight: 550; }
+.score { font-size: 13px; color: var(--ink-2); }
+.score[data-clean] { color: var(--pos-text); }
+.note { font-size: 14px; color: var(--ink-2); line-height: 1.45; }

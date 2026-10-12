@@ -4,7 +4,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { buildDemo } from './demo';
 import { rFromPrices, type Stats } from './stats';
 import { resultValue, showResult, type Units } from './units';
+import { applyMerge } from './datacheck/checks';
+import type { PlatformCheck } from './datacheck/reconcile';
 import { linkEarlyNotes } from './link';
+import { emptyAgent, type AgentState } from './rules/notices';
 import { uid } from './id';
 import { cloudProvider, emptyJournal, MERGED_EVENT } from './storage';
 import { supabase } from './supabase/client';
@@ -21,11 +24,18 @@ interface JournalApi {
   /** Returns how many were new (duplicates of existing trades are skipped). */
   addTrades(trades: Trade[]): number;
   deleteTrade(id: string): void;
+  /** Merges duplicate copies of one trade into the kept one; their notes move with it. Only after the trader confirms. */
+  mergeTrades(keep: string, remove: string[]): void;
   /** Closes an open position; R comes from the stop when one was given. */
   closeTrade(id: string, close: { exit: number; pnl: number; closedAt: string }): void;
   setPlaybook(p: Playbook): void;
   setProfile(p: TraderProfile): void;
   setUnits(u: Units): void;
+  setAgent(a: AgentState): void;
+  dismissNotice(ruleId: string, day: string): void;
+  /** Saves a drafted rule-break note as a real entry, in the trader's (possibly edited) words. */
+  saveDraft(id: string, text: string): void;
+  dismissDraft(id: string): void;
   logQuestion(q: Omit<QuestionLog, 'id' | 'askedAt'>): void;
   setImprovement(weekStart: string, improvement: string): void;
   addAccount(a: SyncAccount): void;
@@ -33,7 +43,7 @@ interface JournalApi {
   /** Stops importing; trades already imported stay, open positions from it are cleared. */
   removeAccount(localId: string): void;
   /** Merges one sync result: closed trades added once, open positions replaced. */
-  applySync(localId: string, r: { closed: Trade[]; open: Trade[]; syncedAt: string }): void;
+  applySync(localId: string, r: { closed: Trade[]; open: Trade[]; syncedAt: string; check?: PlatformCheck }): void;
   loadDemo(): void;
   clearAll(): Promise<void>;
 }
@@ -161,8 +171,39 @@ export function JournalProvider({ userId, children }: { userId: string; children
           entries: d.entries.map((e) => (e.tradeId === id ? { ...e, tradeId: undefined } : e)),
         }));
       },
+      mergeTrades(keep, remove) {
+        update((d) => ({ ...d, ...applyMerge(d, keep, remove) }));
+      },
       setUnits(units) {
         update((d) => ({ ...d, units }));
+      },
+      setAgent(agent) {
+        update((d) => ({ ...d, agent }));
+      },
+      dismissNotice(ruleId, day) {
+        update((d) => {
+          const a = d.agent ?? emptyAgent();
+          return { ...d, agent: { ...a, notices: a.notices.map((n) => (n.ruleId === ruleId && n.day === day ? { ...n, dismissed: true } : n)) } };
+        });
+      },
+      saveDraft(id, text) {
+        update((d) => {
+          const a = d.agent ?? emptyAgent();
+          const draft = a.drafts.find((x) => x.id === id);
+          if (!draft || draft.status !== 'pending') return d;
+          const entry: Entry = { id: uid('e_'), kind: 'rule_break', text: text.trim() || draft.text, tradeId: draft.tradeIds[0], createdAt: new Date().toISOString() };
+          return {
+            ...d,
+            entries: [entry, ...d.entries],
+            agent: { ...a, drafts: a.drafts.map((x) => (x.id === id ? { ...x, status: 'saved' as const } : x)) },
+          };
+        });
+      },
+      dismissDraft(id) {
+        update((d) => {
+          const a = d.agent ?? emptyAgent();
+          return { ...d, agent: { ...a, drafts: a.drafts.map((x) => (x.id === id ? { ...x, status: 'dismissed' as const } : x)) } };
+        });
       },
       setProfile(profile) {
         update((d) => ({ ...d, profile }));
@@ -194,7 +235,7 @@ export function JournalProvider({ userId, children }: { userId: string; children
           trades: d.trades.filter((t) => !(t.accountId === localId && isOpen(t))),
         }));
       },
-      applySync(localId, { closed, open: openNow, syncedAt }) {
+      applySync(localId, { closed, open: openNow, syncedAt, check }) {
         // A position can't be both closed and open; the closed record wins.
         const closedIds = new Set(closed.map((t) => t.id));
         const open = openNow.filter((t) => !closedIds.has(t.id));
@@ -206,7 +247,15 @@ export function JournalProvider({ userId, children }: { userId: string; children
           for (const t of open) if (t.platform && t.stop != null && stops[t.platform.positionId] == null) stops[t.platform.positionId] = t.stop;
           // This account's open positions are replaced by the current list; closed
           // trades are added once (same id as when they were open, so notes stay linked).
-          const kept = d.trades.filter((t) => !(t.accountId === localId && isOpen(t)));
+          // The platform owns the numbers: a closed trade it reports again (a late swap,
+          // a corrected fee) is refreshed, keeping what the trader added, like the setup.
+          const fresh = new Map(closed.map((t) => [t.id, t]));
+          const kept = d.trades
+            .filter((t) => !(t.accountId === localId && isOpen(t)))
+            .map((t) => {
+              const f = fresh.get(t.id);
+              return f && t.accountId === localId ? { ...t, pnl: f.pnl, exit: f.exit, size: f.size, closedAt: f.closedAt, platform: f.platform, r: f.r ?? t.r } : t;
+            });
           const known = new Set(kept.map((t) => t.id));
           const newClosed = closed.filter((t) => !known.has(t.id));
           const trades = [...newClosed, ...open, ...kept].sort((a, b) => b.closedAt.localeCompare(a.closedAt));
@@ -215,7 +264,9 @@ export function JournalProvider({ userId, children }: { userId: string; children
             trades,
             entries: linkEarlyNotes(d.entries, [...newClosed, ...open]),
             accounts: (d.accounts ?? []).map((a) =>
-              a.localId === localId ? { ...a, state: 'ok' as const, problem: undefined, lastSyncedAt: syncedAt, lastAttemptAt: syncedAt, stops } : a,
+              a.localId === localId
+                ? { ...a, state: 'ok' as const, problem: undefined, lastSyncedAt: syncedAt, lastAttemptAt: syncedAt, stops, ...(check ? { platformCheck: check } : {}) }
+                : a,
             ),
           };
         });

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/supabase/server';
 import { AIUnavailableError, getProvider } from '@/lib/ai/provider';
+import { rulePrompt } from '@/lib/rules/prompt';
+import { toRuleBody } from '@/lib/rules/validate';
 import { constrainToPlaybook } from '@/lib/structure';
 import type { EntryKind, Playbook, Structured, Trade } from '@/lib/types';
 
@@ -14,7 +16,8 @@ const MAX_TEXT = 4000;
 
 type Body =
   | { task: 'note'; text: string; playbook: Playbook; trade?: Pick<Trade, 'symbol' | 'side' | 'r' | 'setup'> }
-  | { task: 'playbook'; text: string };
+  | { task: 'playbook'; text: string }
+  | { task: 'rule'; text: string };
 
 function notePrompt(text: string, playbook: Playbook, trade?: unknown) {
   return `You map a trader's journal note onto THEIR OWN playbook. Never invent setups, tags or field values that are not listed.
@@ -86,6 +89,12 @@ export async function POST(req: NextRequest) {
           options: (f.options ?? []).map(clean).filter(Boolean).slice(0, 12),
         })).filter((f) => f.name && f.options.length),
       });
+    }
+
+    if (body.task === 'rule') {
+      const raw = await ai.json<{ kind?: unknown; params?: unknown }>(rulePrompt(body.text), { temperature: 0, maxTokens: 200 });
+      // The same check as every other rule: the engine only ever sees well-formed ones.
+      return NextResponse.json({ rule: toRuleBody(raw.kind, raw.params) });
     }
 
     return NextResponse.json({ error: 'unknown_task' }, { status: 400 });

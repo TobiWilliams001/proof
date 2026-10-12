@@ -300,6 +300,8 @@ describe('plan at open, congruence, and the review speaking first', () => {
     const discipline = lines.find((l) => l.kind === 'discipline')!;
     expect(discipline.text).toContain('You followed your plan on 1 of 3 trades.');
     expect(lines.filter((l) => l.kind === 'suggestion').length).toBeLessThanOrEqual(1);
+    // Every suggestion can be started as an experiment in one tap.
+    for (const l of lines.filter((x) => x.kind === 'suggestion')) expect(l.experiment?.plan.length).toEqual({ kind: 'trades', value: 10 });
     for (const l of lines.filter((x) => x.kind !== 'summary' && x.kind !== 'suggestion')) {
       expect(l.tradeIds.length + l.entryIds.length).toBeGreaterThan(0);
     }

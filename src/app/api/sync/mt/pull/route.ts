@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/supabase/server';
 import { dealsByPosition, dealsByTime, deploy, positions, readAccount, SyncError } from '@/lib/sync/metaapi';
+import { platformPositions, type PlatformCheck } from '@/lib/datacheck/reconcile';
 import { dealsToTrades, positionsToOpenTrades } from '@/lib/sync/mt-map';
 import { syncConfigured, unseal } from '@/lib/sync/seal';
 
@@ -18,11 +19,25 @@ const BACKFILL_DAYS = 90;
 // Re-read a little history every time; ids make re-reads harmless and catch late deals.
 const OVERLAP_MS = 7 * 24 * 3600_000;
 
+const CHECK_DAYS = 30;
+
+/** MetaTrader's own totals for the last 30 days, summed from its raw deals, to compare with Proof's. */
+async function platformCheck(region: string, accountId: string, now: Date): Promise<PlatformCheck> {
+  const from = new Date(now.getTime() - CHECK_DAYS * 864e5).toISOString();
+  const to = now.toISOString();
+  const deals = await dealsByTime(region, accountId, from, new Date(now.getTime() + 60_000).toISOString());
+  // Positions opened before the window need their opening deals for a full net.
+  const ins = new Set(deals.filter((d) => d.entryType === 'DEAL_ENTRY_IN').map((d) => d.positionId));
+  const short = [...new Set(deals.filter((d) => d.positionId && !ins.has(d.positionId)).map((d) => d.positionId!))].slice(0, 50);
+  const extra = (await Promise.all(short.map((p) => dealsByPosition(region, accountId, p)))).flat();
+  return { at: to, from, to, positions: platformPositions([...deals, ...extra], from, to) };
+}
+
 export async function POST(req: NextRequest) {
   const who = await requireUser(req);
   if ('response' in who) return who.response;
   if (!syncConfigured()) return NextResponse.json({ state: 'error', problem: 'not_configured' }, { status: 503 });
-  const b = (await req.json().catch(() => null)) as { sealed?: string; since?: string; sightedStops?: Record<string, number> } | null;
+  const b = (await req.json().catch(() => null)) as { sealed?: string; since?: string; sightedStops?: Record<string, number>; check?: boolean } | null;
   const acc = b?.sealed ? unseal<Sealed>(b.sealed) : null;
   if (!acc) return NextResponse.json({ state: 'error', problem: 'invalid' }, { status: 400 });
 
@@ -53,6 +68,7 @@ export async function POST(req: NextRequest) {
       syncedAt: now.toISOString(),
       closed: mapped.trades,
       open: positionsToOpenTrades(open, opts),
+      ...(b?.check ? { check: await platformCheck(info.region, acc.id, now) } : {}),
     });
   } catch (err) {
     if (err instanceof SyncError) return NextResponse.json({ state: 'error', problem: err.problem });

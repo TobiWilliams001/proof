@@ -42,7 +42,7 @@ function mentions(e: Entry, term: string): boolean {
   );
 }
 
-function tradesMentioning(ctx: JournalContext, term: string): Set<string> {
+export function tradesMentioning(ctx: JournalContext, term: string): Set<string> {
   return new Set(
     ctx.entries.filter((e) => e.tradeId && mentions(e, term)).map((e) => e.tradeId!),
   );

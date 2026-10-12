@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, FlaskConical } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RBars } from '@/components/Charts';
@@ -13,7 +13,14 @@ import { buildCoachNote, type CoachLine } from '@/lib/coach';
 import { buildWeeklyReview, type SetupSummary } from '@/lib/review';
 import { useJournal, useUnits } from '@/lib/store';
 import { Term } from '@/components/Term';
+import { StartExperiment } from '@/components/StartExperiment';
+import { ExperimentCard } from '@/components/ExperimentCard';
+import { ExperimentThatWeek, RulesThisWeek } from '@/components/ReviewAgent';
+import { useRules } from '@/lib/rules/useRules';
+import { rulesWeek } from '@/lib/rules/week';
+import { useExperiments } from '@/lib/experiments/useExperiments';
 import { useMounted } from '@/lib/useMounted';
+import { useNow } from '@/lib/useNow';
 import type { Entry, Trade } from '@/lib/types';
 import s from './review.module.css';
 
@@ -30,7 +37,12 @@ export default function ReviewPage() {
   }, []);
   const mounted = useMounted();
   const anchor = useMemo(() => addDays(startOfWeek(new Date()), offset * 7), [offset]);
-  const r = useMemo(() => buildWeeklyReview(data.trades, data.entries, anchor, u.units === 'money'), [data.trades, data.entries, anchor, u.units]);
+  const { rules } = useRules();
+  const r = useMemo(() => {
+    const from = startOfWeek(anchor);
+    const broken = rulesWeek(rules, data.trades, from, addDays(from, 7)).flatMap((w) => w.broken.flatMap((b) => b.tradeIds));
+    return buildWeeklyReview(data.trades, data.entries, anchor, u.units === 'money', broken);
+  }, [data.trades, data.entries, anchor, u.units, rules]);
   const tradesById = useMemo(() => new Map(data.trades.map((t) => [t.id, t])), [data.trades]);
   const coach = useMemo(() => buildCoachNote(data.trades, data.entries, data.playbook, anchor, u.units), [data, anchor, u.units]);
 
@@ -47,6 +59,8 @@ export default function ReviewPage() {
   const label = offset === 0 ? 'This week' : offset === -1 ? 'Last week' : range;
   const empty = ready && r.stats.count === 0 && !r.missed.length && !r.reflections.length && !r.plans.length;
   const hasTrades = r.stats.count > 0;
+  const weekFrom = useMemo(() => startOfWeek(anchor), [anchor]);
+  const weekTo = useMemo(() => addDays(startOfWeek(anchor), 7), [anchor]);
   const result = u.split(r.stats.rCount ? r.stats.totalR : null, r.stats.pnl);
   const avg = u.split(r.stats.avgR, hasTrades ? r.stats.pnl / r.stats.count : null);
 
@@ -76,6 +90,7 @@ export default function ReviewPage() {
       )}
 
       {ready && !empty && <CoachNote lines={coach} tradesById={tradesById} entries={data.entries} />}
+      {ready && offset === 0 && <ExperimentCard />}
 
       {empty && (
         <div className="empty card">
@@ -119,7 +134,7 @@ export default function ReviewPage() {
                 sub={
                   r.adherenceSource === 'answers'
                     ? `from your answers on ${r.planAnswered} trade${r.planAnswered === 1 ? '' : 's'}`
-                    : `${r.ruleBreaks.length} rule break${r.ruleBreaks.length === 1 ? '' : 's'} logged`
+                    : r.brokenCount ? `${r.brokenCount} trade${r.brokenCount === 1 ? '' : 's'} broke a rule` : 'no rules broken'
                 }
               />
               <Meter
@@ -129,6 +144,8 @@ export default function ReviewPage() {
                 sub="trades with a note"
               />
             </div>
+            <RulesThisWeek from={weekFrom} to={weekTo} />
+            {offset < 0 && <ExperimentThatWeek from={weekFrom} to={weekTo} />}
             <Fold title="Rule breaks" items={r.ruleBreaks} tradesById={tradesById} />
             <Fold
               title="Missed trades"
@@ -293,6 +310,35 @@ function Fold({
  * The review speaks first: a short note from the week's data. Each claim can be
  * opened to show the trades and notes it rests on.
  */
+/** A suggestion, and the one tap that turns it into a tracked experiment. */
+function Suggestion({ line }: { line: CoachLine }) {
+  const { running, ready, experiments } = useExperiments();
+  const [starting, setStarting] = useState(false);
+  const same = running && line.experiment && running.insightId === line.experiment.insightId;
+  // Just tried it: don't offer the same experiment again for a couple of weeks.
+  const now = useNow();
+  const recent = experiments.find(
+    (e) => e.status === 'complete' && e.insightId === line.experiment?.insightId && e.endAt && now - Date.parse(e.endAt) < 14 * 864e5,
+  );
+  return (
+    <div className={s.suggestion}>
+      <p>{line.text}</p>
+      {line.experiment && ready && (
+        same ? (
+          <p className={s.suggestionNote}>This experiment is running.</p>
+        ) : recent ? (
+          <p className={s.suggestionNote}>You tried this recently. See the result below.</p>
+        ) : !running ? (
+          <button className="btn btn-soft btn-sm" onClick={() => setStarting(true)}>
+            <FlaskConical size={14} /> Start this experiment
+          </button>
+        ) : null
+      )}
+      <StartExperiment open={starting} onClose={() => setStarting(false)} initial={line.experiment} />
+    </div>
+  );
+}
+
 function CoachNote({ lines, tradesById, entries }: { lines: CoachLine[]; tradesById: Map<string, Trade>; entries: Entry[] }) {
   const [open, setOpen] = useState<number | null>(null);
   const suggestion = lines.find((l) => l.kind === 'suggestion');
@@ -324,7 +370,7 @@ function CoachNote({ lines, tradesById, entries }: { lines: CoachLine[]; tradesB
           );
         })}
       </div>
-      {suggestion && <p className={s.suggestion}>{suggestion.text}</p>}
+      {suggestion && <Suggestion line={suggestion} />}
       <AnimatePresence initial={false}>
         {open != null && facts[open] && (
           <motion.div

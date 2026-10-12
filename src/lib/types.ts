@@ -105,6 +105,8 @@ export interface SyncAccount {
   connectedAt: string;
   /** Stop first seen for each position, R must reflect the risk taken, not a trailed stop. */
   stops: Record<string, number>;
+  /** MetaTrader's own totals for the last 30 days, from the latest hourly check. */
+  platformCheck?: import('./datacheck/reconcile').PlatformCheck;
 }
 
 /** The welcome questions: who the trader is, so Proof fits them (and you learn your audience). */
@@ -125,6 +127,8 @@ export interface JournalData {
   units?: 'money' | 'r' | 'both';
   accounts?: SyncAccount[];
   profile?: TraderProfile;
+  /** What Proof has already said about the trader's rules, and draft notes waiting for them. */
+  agent?: import('./rules/notices').AgentState;
   trades: Trade[];
   entries: Entry[];
   playbook: Playbook;

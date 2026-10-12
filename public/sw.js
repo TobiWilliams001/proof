@@ -69,3 +69,14 @@ self.addEventListener('fetch', (event) => {
     }),
   );
 });
+
+// Tapping a rule notification opens the journal, where the card is waiting.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      return open ? open.focus().then((w) => w.navigate('/journal')) : self.clients.openWindow('/journal');
+    }),
+  );
+});

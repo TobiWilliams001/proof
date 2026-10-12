@@ -1,82 +1,161 @@
-.page {
-  min-height: 100dvh;
+/* Sign up and sign in. Phones: one calm column. Larger screens: the form beside a panel
+   that shows what Proof does. */
+.page { min-height: 100dvh; display: grid; background: var(--bg); }
+@media (min-width: 960px) { .page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+/* ── Brand panel (larger screens) ── */
+.brand { display: none; }
+@media (min-width: 960px) {
+  .brand {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 40px;
+    padding: 40px 48px;
+    margin: 12px 0 12px 12px;
+    border-radius: 28px;
+    overflow: hidden;
+    background: #121316;
+    color: #f2f1ec;
+    /* The wordmark reads its colour from the ink token. */
+    --ink: #f2f1ec;
+  }
+}
+.brandGlow {
+  position: absolute;
+  inset: -20% -10% auto auto;
+  width: 80%;
+  height: 70%;
+  background: radial-gradient(closest-side, rgba(232, 163, 61, 0.28), transparent);
+  pointer-events: none;
+}
+.brandBody { position: relative; display: flex; flex-direction: column; gap: 32px; max-width: 460px; }
+.brandTitle { font-size: clamp(32px, 3.2vw, 44px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 650; }
+.brandTitle em { font-style: normal; color: #e8a33d; }
+.brandCards { display: flex; flex-direction: column; gap: 10px; }
+.brandCard {
   display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
 }
-.top {
-  max-width: 420px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 18px 0;
-}
-.main {
-  flex: 1;
-  display: grid;
-  align-items: start;
-  padding-top: 8vh;
-}
-.card {
-  max-width: 420px;
-  width: 100%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.title {
-  font-size: clamp(28px, 7vw, 34px);
-  font-weight: 650;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-}
-.sub {
-  color: var(--ink-2);
-  font-size: 15.5px;
-  line-height: 1.5;
-  margin-top: -6px;
-}
-.sub strong { color: var(--ink); font-weight: 550; word-break: break-all; }
-.code {
-  font-size: 22px;
-  letter-spacing: 0.3em;
-  text-align: center;
-  height: 56px;
-}
-.problem {
-  color: var(--neg-text);
-  font-size: 14px;
-  line-height: 1.45;
-}
-.note {
-  color: var(--ink-3);
-  font-size: 13.5px;
-  line-height: 1.5;
-  text-align: center;
-}
-.back { align-self: flex-start; margin-left: -10px; }
-.link {
+.brandCard strong { display: block; font-size: 14.5px; font-weight: 600; }
+.brandCard span span { display: block; margin-top: 2px; font-size: 13px; color: rgba(242, 241, 236, 0.6); }
+.brandIcon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: rgba(232, 163, 61, 0.16); color: #e8a33d; }
+.brandFoot { position: relative; font-size: 13px; color: rgba(242, 241, 236, 0.5); }
+
+/* ── Form side ── */
+.side { display: flex; flex-direction: column; min-height: 100dvh; padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom); }
+.top { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 400px; margin: 0 auto; padding: 16px 0; }
+@media (min-width: 960px) { .logo { visibility: hidden; } }
+.main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 0 24px; }
+@media (min-width: 960px) { .main { align-items: center; padding: 0; } }
+.card { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 18px; }
+
+.heading { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--accent-soft);
   color: var(--accent);
-  font: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
 }
-.link:disabled { color: var(--ink-3); text-decoration: none; }
+.badgeDot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.iconBubble { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: var(--accent-soft); color: var(--accent); }
+.title { font-size: clamp(30px, 7.5vw, 36px); font-weight: 650; letter-spacing: -0.03em; line-height: 1.05; }
+.sub { color: var(--ink-2); font-size: 16px; line-height: 1.5; }
+.sub strong { color: var(--ink); font-weight: 550; word-break: break-all; }
+
+.field { display: flex; flex-direction: column; gap: 8px; }
+.label { font-size: 13.5px; font-weight: 550; color: var(--ink-2); }
 .labelRow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.labelRow .link { font-size: 13px; }
-.passwordWrap { position: relative; display: block; }
-.passwordWrap :global(.input) { width: 100%; padding-right: 48px; }
+.inputWrap { position: relative; display: block; }
+.inputIcon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; transition: color 0.15s ease; }
+.input {
+  width: 100%;
+  height: 54px;
+  padding: 0 48px 0 46px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input::placeholder { color: var(--ink-3); }
+.input:hover { border-color: var(--ink-3); }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.inputWrap:focus-within .inputIcon { color: var(--accent); }
 .eye {
   position: absolute;
   top: 50%;
-  right: 4px;
+  right: 6px;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   color: var(--ink-3);
   border-radius: 10px;
 }
 .eye:hover { color: var(--ink); }
+.rule { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-3); transition: color 0.2s ease; }
+.rule svg { opacity: 0.35; transition: opacity 0.2s ease; }
+.rule[data-ok] { color: var(--pos-text); }
+.rule[data-ok] svg { opacity: 1; }
+
+.problem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--neg-soft);
+  color: var(--neg-text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.problem svg { flex: none; margin-top: 2px; }
+.cta { height: 54px; border-radius: 14px; gap: 8px; margin-top: 4px; }
+.switch { text-align: center; font-size: 14.5px; color: var(--ink-2); }
+.note { color: var(--ink-3); font-size: 13.5px; line-height: 1.5; text-align: center; }
+.back { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: 14px; font-weight: 550; color: var(--ink-2); }
+.back:hover { color: var(--ink); }
+.link { color: var(--accent); font: inherit; font-weight: 600; }
+.link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.labelRow .link { font-size: 13px; }
+
+.trust { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px 0 20px; font-size: 12.5px; color: var(--ink-3); text-align: center; }
+
+/* Kept for the reset-password page, which shares these styles. */
+.passwordWrap { position: relative; display: block; }
+.passwordWrap :global(.input) { width: 100%; padding-right: 48px; }
+
+.google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15.5px;
+  font-weight: 600;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.google:hover { border-color: var(--ink-3); }
+.google:disabled { opacity: 0.6; }
+.or { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 13px; }
+.or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line-2); }

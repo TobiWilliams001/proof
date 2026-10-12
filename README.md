@@ -32,7 +32,7 @@ npm run build
 
 ### Supabase setup (once)
 
-1. SQL editor: run `supabase/migrations/0001_accounts.sql` (journals and profiles tables, row level security).
+1. SQL editor: run each file in `supabase/migrations/` in order: `0001_accounts.sql` (journals, profiles), `0002_rules.sql` (the trader's rules), `0003_experiments.sql` (experiments, one running at a time). Every table has row level security.
 2. Accounts use email and password. Authentication → Sign In / Providers → Email: turn **Confirm email** off for instant sign-up while testing; with it on, new traders confirm by email link once, then sign in.
 3. Authentication → URL Configuration: set the Site URL to your Vercel URL and add it (and `http://localhost:3000/**`) to Redirect URLs.
 4. The built-in email sender allows only a few emails an hour. Before real testers, add custom SMTP (for example Resend) under Authentication → SMTP.

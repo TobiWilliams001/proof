@@ -6,6 +6,7 @@ import { MicButton, useVoice, VoiceHelp } from '@/components/Voice';
 import { importPlaybook } from '@/lib/ai-client';
 import { uid } from '@/lib/id';
 import { Reveal } from '@/components/motion';
+import { Rules } from '@/components/Rules';
 import { useJournal } from '@/lib/store';
 import type { CustomField, Playbook, PlaybookSetup } from '@/lib/types';
 import s from './playbook.module.css';
@@ -86,6 +87,8 @@ export default function PlaybookPage() {
           </button>
         </div>
       </Reveal>
+
+      <Rules />
 
       <Reveal className="section">
         <div className="section-head">
