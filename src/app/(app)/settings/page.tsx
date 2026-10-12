@@ -11,6 +11,7 @@ import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Reveal } from '@/components/motion';
 import { typicalJournalTime } from '@/lib/metrics';
 import { useJournal } from '@/lib/store';
+import { Term } from '@/components/Term';
 import { useMounted } from '@/lib/useMounted';
 import { PLATFORMS } from '@/lib/sync/adapter';
 
@@ -23,7 +24,8 @@ function download(name: string, body: string, type: string) {
 }
 
 export default function SettingsPage() {
-  const { data, addTrades, loadDemo, clearAll } = useJournal();
+  const { data, addTrades, loadDemo, clearAll, setUnits } = useJournal();
+  const units = data.units ?? 'money';
   const stamp = new Date().toISOString().slice(0, 10);
   const mounted = useMounted();
   const pace = mounted ? typicalJournalTime() : null;
@@ -73,6 +75,21 @@ export default function SettingsPage() {
           <div className="list-item">
             <span style={{ flex: 1 }}>Theme</span>
             <ThemeSwitch />
+          </div>
+          <div className="list-item" style={{ flexWrap: 'wrap' }}>
+            <span style={{ flex: 1, minWidth: 140 }}>
+              Show results in
+              <span className="faint" style={{ display: 'block', fontSize: 12.5 }}>
+                Money is simplest. <Term word="R">R</Term> compares each result with what you risked.
+              </span>
+            </span>
+            <div className="seg" role="group" aria-label="Show results in">
+              {(['money', 'r', 'both'] as const).map((u) => (
+                <button key={u} aria-pressed={units === u} onClick={() => setUnits(u)}>
+                  {u === 'money' ? 'Money' : u === 'r' ? 'R' : 'Both'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </Reveal>

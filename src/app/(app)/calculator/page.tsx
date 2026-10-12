@@ -2,6 +2,7 @@
 
 import { ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
+import { Term } from '@/components/Term';
 import { FX_PAIRS, sizeCrypto, sizeForex, type FxPair } from '@/lib/calculator';
 import { fmt } from '@/lib/format';
 
@@ -132,7 +133,7 @@ export default function CalculatorPage() {
               <div className="stat-value">{market === 'forex' ? res.size.toFixed(2) : res.size < 1 ? res.size.toFixed(4) : res.size.toFixed(2)}</div>
             </div>
             <div className="stat">
-              <div className="stat-label">Notional</div>
+              <div className="stat-label"><Term word="Position value" /></div>
               <div className="stat-value">{fmt.money(res.notional)}</div>
             </div>
             <div className="stat">
@@ -141,7 +142,7 @@ export default function CalculatorPage() {
             </div>
             <div className="stat">
               <div className="stat-label">Reward : risk</div>
-              <div className="stat-value">{res.rr ? `${res.rr.toFixed(2)}R` : 'No target'}</div>
+              <div className="stat-value">{res.rr ? `${res.rr.toFixed(1)} to 1` : 'No target'}</div>
             </div>
           </div>
           {res.margin != null && (
