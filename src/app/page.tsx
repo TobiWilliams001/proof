@@ -2,6 +2,7 @@ import { ArrowRight, Check, Lock, Mic, Plug, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Reveal } from '@/components/motion';
+import { ThemeToggle } from '@/components/ThemeSwitch';
 import { WaitlistForm } from '@/components/WaitlistForm';
 import s from './landing.module.css';
 
@@ -63,6 +64,7 @@ export default function Landing() {
           <div className={s.navLinks}>
             <a href="#how" className={s.navLink}>How it works</a>
             <Link href="/journal" className={`${s.navLink} ${s.navTry}`}>Try it</Link>
+            <ThemeToggle />
             <a href="#join" className={s.navCta}>Join the waitlist</a>
           </div>
         </div>
