@@ -26,12 +26,14 @@ function anthropic(apiKey: string): LLMProvider {
   const client = new Anthropic({ apiKey, timeout: 15000, maxRetries: 1 });
   return {
     name: `anthropic:${model}`,
-    async json<T>(prompt: string, { temperature = 0.2, maxTokens = 800 } = {}) {
+    // Current models choose their own sampling; sending temperature is rejected.
+    async json<T>(prompt: string, { maxTokens = 800 } = {}) {
       try {
         const msg = await client.messages.create({
           model,
           max_tokens: maxTokens,
-          temperature,
+          // Short structuring needs no thinking; it would also eat the reply budget.
+          thinking: { type: 'disabled' },
           system: 'Reply with one JSON object only. No prose, no code fences.',
           messages: [{ role: 'user', content: prompt }],
         });
