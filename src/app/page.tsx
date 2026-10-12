@@ -16,7 +16,7 @@ const STEPS = [
   {
     icon: Mic,
     title: 'Say what happened.',
-    body: 'When a trade closes, Proof asks one question: what happened? Type it or speak it, the way you’d tell a friend. Keep it as written, or let Proof organise it around your setups. About fifteen seconds.',
+    body: 'When a trade closes, Proof asks one question: what happened? Type it or speak it, the way you’d tell a friend. Keep it as written, or let Proof organise it around your setups. A few seconds, and it’s done.',
   },
   {
     icon: Sparkles,
@@ -27,9 +27,9 @@ const STEPS = [
 
 const WINS = [
   ['Find your edge.', 'See which setups, pairs and sessions make you money, in R and in your account currency, so you can do more of what works.'],
-  ['Stop the leaks.', 'Spot the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Seen clearly, they’re fixable.'],
-  ['Pass the challenge. Keep the account.', 'For prop traders, consistency is everything. Proof shows whether you’re trading your plan, before a bad week turns into a lost account.'],
-  ['Feel in control again.', 'No more wondering if you’re improving. Your weekly review shows where you stand and one thing to try next.'],
+  ['Spot the leaks.', 'See the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Once you can see them, you can work on them.'],
+  ['Trade your plan under pressure.', 'For prop traders, consistency matters most. Proof shows whether you’re actually following your plan, so a bad week doesn’t quietly become a habit.'],
+  ['Feel in control again.', 'No more guessing whether you’re improving. Your weekly review shows where you stand and one small thing to try next.'],
 ];
 
 // Questions, not results: Proof never markets outcomes it hasn't measured for you.
@@ -74,11 +74,11 @@ export default function Landing() {
           <Reveal y={10}><p className={s.badge}><span className={s.badgeDot} /> Free during early access</p></Reveal>
           <Reveal delay={0.06}>
             <h1 className={s.h1}>
-              Find the leaks <em>costing you money.</em>
+              See what’s really <em>working in your trading.</em>
             </h1>
           </Reveal>
           <Reveal delay={0.14}><p className={s.lede}>
-            Proof syncs your trades, lets you say what happened in seconds, and shows you where you win and where you keep losing.
+            Proof brings in your trades on its own, lets you note what happened in a few seconds, and shows you, with evidence, where you do well and where you keep slipping.
           </p></Reveal>
           <Reveal delay={0.22} className={s.heroCta} id="join">
             <WaitlistForm />
@@ -260,8 +260,8 @@ export default function Landing() {
       {/* ACTION */}
       <section className={s.final}>
         <div className={`${s.wrap} ${s.narrow}`}>
-          <Reveal><h2 className={s.finalH}>Your next losing streak is already in your data. See it first.</h2></Reveal>
-          <p className={s.finalBody}>Connect your account, say what happened, and find out where your money really goes.</p>
+          <Reveal><h2 className={s.finalH}>Your trades already hold the answers.</h2></Reveal>
+          <p className={s.finalBody}>Connect your account, note what happened, and see what your own trading is telling you.</p>
           <WaitlistForm cta="Join the waitlist" inverted />
           <p className={s.finalNote}>Free during early access</p>
         </div>
