@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { buildDemo } from './demo';
 import { rFromPrices, type Stats } from './stats';
 import { resultValue, showResult, type Units } from './units';
+import { applyMerge } from './datacheck/checks';
 import { linkEarlyNotes } from './link';
 import { emptyAgent, type AgentState } from './rules/notices';
 import { uid } from './id';
@@ -22,6 +23,8 @@ interface JournalApi {
   /** Returns how many were new (duplicates of existing trades are skipped). */
   addTrades(trades: Trade[]): number;
   deleteTrade(id: string): void;
+  /** Merges duplicate copies of one trade into the kept one; their notes move with it. Only after the trader confirms. */
+  mergeTrades(keep: string, remove: string[]): void;
   /** Closes an open position; R comes from the stop when one was given. */
   closeTrade(id: string, close: { exit: number; pnl: number; closedAt: string }): void;
   setPlaybook(p: Playbook): void;
@@ -166,6 +169,9 @@ export function JournalProvider({ userId, children }: { userId: string; children
           trades: d.trades.filter((t) => t.id !== id),
           entries: d.entries.map((e) => (e.tradeId === id ? { ...e, tradeId: undefined } : e)),
         }));
+      },
+      mergeTrades(keep, remove) {
+        update((d) => ({ ...d, ...applyMerge(d, keep, remove) }));
       },
       setUnits(units) {
         update((d) => ({ ...d, units }));
