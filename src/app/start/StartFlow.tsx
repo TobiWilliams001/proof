@@ -41,7 +41,13 @@ function nextPath() {
 function problemFor(err: { status?: number; code?: string } | null, mode: Mode): string | null {
   if (!err) return null;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'You seem to be offline. Check your connection and try again.';
-  if (err.status === 429 || err.code?.includes('rate_limit')) return 'Too many tries in a short time. Wait a minute, then try again.';
+  // The email limit is shared by the whole app and lasts up to an hour; say so honestly.
+  if (err.code === 'over_email_send_rate_limit') {
+    return GOOGLE
+      ? 'We can’t send more emails right now. Try again in an hour, or continue with Google.'
+      : 'We can’t send more emails right now. Please try again in an hour.';
+  }
+  if (err.status === 429 || err.code?.includes('rate_limit')) return 'Too many tries in a short time. Wait a few minutes, then try again.';
   if (err.code === 'user_already_exists' || err.code === 'email_exists') return 'There’s already an account with this email. Sign in instead.';
   if (err.code === 'weak_password') return `Choose a longer password, at least ${MIN_PASSWORD} characters.`;
   if (err.code === 'email_not_confirmed') return 'Confirm your email first. Open the link we sent you, then sign in.';
