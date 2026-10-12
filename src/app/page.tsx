@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Lock, Mic, Plug, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Lock, Mic, Plug, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Reveal } from '@/components/motion';
@@ -33,11 +33,24 @@ const WINS = [
   ['Know where you stand.', 'You open your week already knowing which setup to trust, which to leave alone, and the one small thing worth trying next.'],
 ];
 
-// Questions, not results: Proof never markets outcomes it hasn't measured for you.
+// Questions with example answers, taken word for word from Ask on the sample
+// journal and labelled as such. Proof never markets results it hasn't measured for you.
 const QUESTIONS = [
-  'How do my trades do in the hour after a loss?',
-  'Which setup makes me the most?',
-  'Do I do better when I follow my plan?',
+  {
+    q: 'How do my trades do in the hour after a loss?',
+    a: 'Trades you opened within the hour after a loss (2 trades) won 50%, with +$90 a trade. The rest (33 trades) won 33%, with +$45.82.',
+    sure: 'Not enough data · 2 trades',
+  },
+  {
+    q: 'Which setup makes me the most?',
+    a: '3-touch makes you the most money: +$1,404 over 17 trades (41% win rate). Next is Footprint at +$396.',
+    sure: 'Possible pattern · 17 trades',
+  },
+  {
+    q: 'Do I do better when I follow my plan?',
+    a: 'When you followed your plan (11 trades), you won 55% with +$129 a trade. When you didn’t (14 trades), it was 0% and −$82.29.',
+    sure: 'Possible pattern · 11 trades',
+  },
 ];
 
 const KINDS = [
@@ -84,7 +97,7 @@ export default function Landing() {
           </p></Reveal>
           <Reveal delay={0.22} className={s.heroCta}>
             <Link href="/start" className={s.cta}>Get started free <ArrowRight size={16} /></Link>
-            <a href="#how" className={s.secondary}>See how it works <ArrowRight size={15} /></a>
+            <a href="#how" className={s.ctaQuiet}>How it works</a>
           </Reveal>
         </div>
 
@@ -161,11 +174,17 @@ export default function Landing() {
 
           <Reveal className={s.insights}>
             <p className={s.insightsLabel}>Questions you can ask your journal</p>
-            {QUESTIONS.map((q) => (
-              <div key={q} className={s.insight}>
-                <span>{q}</span>
-                <span className="faint">›</span>
-              </div>
+            {QUESTIONS.map(({ q, a, sure }) => (
+              <details key={q} className={s.insight}>
+                <summary>
+                  <span>{q}</span>
+                  <ChevronDown size={17} className={s.chev} aria-hidden />
+                </summary>
+                <div className={s.answer}>
+                  <p>{a}</p>
+                  <p className={s.answerFoot}>{sure} · from a sample journal</p>
+                </div>
+              </details>
             ))}
           </Reveal>
         </div>

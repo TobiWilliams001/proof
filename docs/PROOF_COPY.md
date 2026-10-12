@@ -14,7 +14,7 @@
 **Subheadline:** Proof brings in your trades on its own, lets you note what happened in a few seconds, and shows you, with evidence, where you do well and where you keep slipping.
 
 **Primary CTA:** Get started free
-**Secondary CTA:** See how it works
+**Secondary CTA:** How it works (beside the primary)
 
 *Alternative headlines to test:*
 - Find the leaks costing you money.
@@ -66,10 +66,10 @@ For prop traders, consistency matters most. Proof shows whether you're actually 
 **Know where you stand.**
 You open your week already knowing which setup to trust, which to leave alone, and the one small thing worth trying next.
 
-*Questions you can ask your journal* (no example results; Proof never markets outcomes it hasn't measured for you):
-- "How do my trades do in the hour after a loss?"
-- "Which setup makes me the most?"
-- "Do I do better when I follow my plan?"
+*Questions you can ask your journal.* Each opens to Ask's real answer on the sample journal, labelled "from a sample journal" with its confidence. Never results presented as the trader's own:
+- "How do my trades do in the hour after a loss?" → "Trades you opened within the hour after a loss (2 trades) won 50%, with +$90 a trade. The rest (33 trades) won 33%, with +$45.82." *Not enough data · 2 trades*
+- "Which setup makes me the most?" → "3-touch makes you the most money: +$1,404 over 17 trades (41% win rate). Next is Footprint at +$396." *Possible pattern · 17 trades*
+- "Do I do better when I follow my plan?" → "When you followed your plan (11 trades), you won 55% with +$129 a trade. When you didn't (14 trades), it was 0% and −$82.29." *Possible pattern · 11 trades*
 
 ---
 
