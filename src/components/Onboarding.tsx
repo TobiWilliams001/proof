@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { QUESTIONS } from '@/lib/onboarding/questions';
 import { useJournal } from '@/lib/store';
+import { supabase } from '@/lib/supabase/client';
 import type { TraderProfile } from '@/lib/types';
 import s from './Onboarding.module.css';
 
@@ -22,8 +23,8 @@ type Answers = Omit<TraderProfile, 'answeredAt'>;
 
 /**
  * The welcome questions: five taps and an optional chat invite, under 30
- * seconds, skippable at any point. Answers tailor the app; if a destination is
- * set, only these answers (never trades or notes) are shared with the team.
+ * seconds, skippable at any point. Answers tailor the app and are saved to the
+ * trader's profile so the team can see who Proof is for. Never trades or notes.
  */
 export function Onboarding() {
   const { ready, data, setProfile } = useJournal();
@@ -57,10 +58,9 @@ export function Onboarding() {
       localStorage.setItem(ONBOARDING_KEY, '1');
     } catch {}
     if (finished) {
-      const profile: TraderProfile = { ...a, email: a.chat ? a.email?.trim() || undefined : undefined, answeredAt: new Date().toISOString() };
+      const profile: TraderProfile = { ...a, answeredAt: new Date().toISOString() };
       setProfile(profile);
-      // Shared only if a destination is set; failures don't matter to the trader.
-      fetch('/api/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(profile) }).catch(() => {});
+      saveProfile(profile);
     }
     setOpen(false);
     // The tour follows the welcome questions.
@@ -152,21 +152,9 @@ export function Onboarding() {
               <p className={s.hint}>It helps shape what Proof does next.</p>
               <div className={s.options}>
                 <button className={s.option} aria-pressed={a.chat === true} onClick={() => setA((x) => ({ ...x, chat: true }))}>Yes</button>
-                <button className={s.option} aria-pressed={a.chat === false} onClick={() => setA((x) => ({ ...x, chat: false, email: undefined }))}>No thanks</button>
+                <button className={s.option} aria-pressed={a.chat === false} onClick={() => setA((x) => ({ ...x, chat: false }))}>No thanks</button>
               </div>
-              {a.chat && (
-                <input
-                  className="input"
-                  style={{ marginTop: 12 }}
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="Your email"
-                  value={a.email ?? ''}
-                  onChange={(e) => setA((x) => ({ ...x, email: e.target.value }))}
-                  autoFocus
-                />
-              )}
+              {a.chat && <p className={s.hint} style={{ marginTop: 12 }}>We’ll email you at the address you signed up with.</p>}
               <p className={s.privacy}>We only see these answers. Never your trades or notes.</p>
               <div className="actions" style={{ marginTop: 16 }}>
                 <button className="btn btn-primary btn-block" onClick={() => close(true)}>Done</button>
@@ -177,4 +165,22 @@ export function Onboarding() {
       </AnimatePresence>
     </div>
   );
+}
+
+/** Saves the answers to the trader's profile. A failure doesn't matter to them. */
+async function saveProfile(p: TraderProfile) {
+  const sb = supabase();
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return;
+  await sb.from('profiles').upsert({
+    user_id: data.session.user.id,
+    markets: p.markets,
+    account: p.account ?? null,
+    platform: p.platform ?? null,
+    journal_now: p.journalNow ?? null,
+    journal_app: p.journalApp?.slice(0, 40) ?? null,
+    goal: p.goal ?? null,
+    chat: p.chat ?? null,
+    answered_at: p.answeredAt,
+  });
 }

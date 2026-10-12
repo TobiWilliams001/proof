@@ -116,7 +116,6 @@ export interface TraderProfile {
   journalApp?: string;
   goal?: string;
   chat?: boolean;
-  email?: string;
   answeredAt: string;
 }
 
