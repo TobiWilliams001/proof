@@ -12,6 +12,7 @@ import {
   type TradeFilter,
 } from './tools';
 import type { Playbook, Session, Trade } from './types';
+import { resultValue, showResult, type Units } from './units';
 
 /**
  * Ask your journal: question → typed tool calls → computed answer.
@@ -44,13 +45,13 @@ export interface Answer {
 }
 
 const METRICS: [Metric, RegExp][] = [
-  ['drawdown', /\b(drawdowns?|draw downs?|biggest drop|deepest drop|worst run|recover(y|ed)?)\b/],
+  ['drawdown', /\b(drawdowns?|draw downs?|biggest drop|deepest drop|biggest dip|dips?|worst run|recover(y|ed)?)\b/],
   ['streak', /\b(losing streaks?|losses in a row|losing runs?|streaks?)\b/],
-  ['expectancy', /\b(expectancy|expect per trade|edge per trade|make per trade|average per trade)\b/],
+  ['expectancy', /\b(expectancy|expect per trade|edge per trade|make per trade|average per trade|make a trade|make on an? average trade|average trade|per trade on average)\b/],
   ['winRate', /\b(win ?rate|hit rate|strike rate|win %|win percentage|how often do i win)\b/],
   ['avgR', /\b(average r|avg r|r per trade|average return)\b/],
   ['totalR', /\b(total r|how much r|most r|r made|net r)\b/],
-  ['pnl', /\b(p&l|p ?n ?l|profit|made|lost|money|dollars?|net)\b/],
+  ['pnl', /\b(p&l|p ?n ?l|profit|made|lost|money|dollars?|net|how much did i make|how much have i made)\b/],
   ['count', /\b(how many|number of|count)\b/],
 ];
 
@@ -193,29 +194,21 @@ function metricValue(m: Metric, s: Stats): string {
 
 const METRIC_LABEL: Record<Metric, string> = {
   winRate: 'win rate',
-  pnl: 'P&L',
+  pnl: 'result',
   avgR: 'average R',
   totalR: 'total R',
   count: 'trade count',
-  expectancy: 'expectancy',
-  drawdown: 'biggest drawdown',
+  expectancy: 'average per trade',
+  drawdown: 'biggest dip',
   streak: 'longest losing streak',
 };
 
-function statHighlights(s: Stats): Answer['highlights'] {
-  return [
-    { label: 'Trades', value: String(s.count) },
-    { label: 'Win rate', value: fmt.pct(s.winRate) },
-    { label: 'Avg R', value: fmt.r(s.avgR), tone: (s.avgR ?? 0) >= 0 ? 'pos' : 'neg' },
-    { label: 'P&L', value: fmt.pnl(s.pnl), tone: s.pnl >= 0 ? 'pos' : 'neg' },
-  ];
-}
 
-function rankKey(order: 'best' | 'worst') {
+function rankKey(order: 'best' | 'worst', byMoney = false) {
+  const v = (x: { stats: Stats }) => (byMoney ? x.stats.pnl : x.stats.totalR);
+  const tie = (x: { stats: Stats }) => (byMoney ? x.stats.totalR : x.stats.pnl);
   return (a: { stats: Stats }, b: { stats: Stats }) =>
-    order === 'best'
-      ? b.stats.totalR - a.stats.totalR || b.stats.pnl - a.stats.pnl
-      : a.stats.totalR - b.stats.totalR || a.stats.pnl - b.stats.pnl;
+    order === 'best' ? v(b) - v(a) || tie(b) - tie(a) : v(a) - v(b) || tie(a) - tie(b);
 }
 
 export function answerQuestion(
@@ -223,8 +216,19 @@ export function answerQuestion(
   ctx: JournalContext,
   playbook: Playbook,
   now = new Date(),
+  units: Units = 'r',
 ): Answer {
   const { intent, scope } = parseQuestion(question, ctx, playbook, now);
+  // Results in the trader's units. Questions that ask for R by name still get R.
+  const res = (st: Stats) => showResult(units, st.rCount ? st.avgR : null, st.count ? st.pnl / st.count : null);
+  const resTotal = (st: Stats) => showResult(units, st.rCount ? st.totalR : null, st.pnl);
+  const tone = (st: Stats): 'pos' | 'neg' => (resultValue(units, st.avgR, st.pnl) >= 0 ? 'pos' : 'neg');
+  const statHighlights = (st: Stats): Answer['highlights'] => [
+    { label: 'Trades', value: String(st.count) },
+    { label: 'Win rate', value: fmt.pct(st.winRate) },
+    { label: 'Average per trade', value: res(st), tone: tone(st) },
+    { label: 'Result', value: resTotal(st), tone: tone(st) },
+  ];
   const toolCalls: Answer['toolCalls'] = [];
 
   if (ctx.trades.length === 0 && intent.type !== 'notes') {
@@ -242,12 +246,12 @@ export function answerQuestion(
         toolCalls.push({ tool: 'group_stats', args: { by: intent.ofBest, filter } });
         const groups = getGroupStats(ctx, intent.ofBest, filter).filter((g) => g.name !== 'Untagged');
         const order = /\bworst\b/i.test(question) ? 'worst' : 'best';
-        const top = [...groups].sort(rankKey(order))[0];
+        const top = [...groups].sort(rankKey(order, units !== 'r'))[0];
         if (!top) {
           return { text: `I couldn't find any trades with a ${intent.ofBest} recorded.`, highlights: [], tradeIds: [], entryIds: [], toolCalls, scope, unsure: true };
         }
         filter = { ...filter, [intent.ofBest]: top.name };
-        prefix = `Your ${order} ${intent.ofBest} by total R is ${top.name} (${fmt.r(top.stats.totalR)}). `;
+        prefix = `Your ${order} ${intent.ofBest} is ${top.name} (${resTotal(top.stats)}). `;
       }
       toolCalls.push({ tool: 'get_stats', args: filter });
       const { stats, tradeIds } = getStats(ctx, filter);
@@ -266,11 +270,10 @@ export function answerQuestion(
         if (intent.metric === 'expectancy') {
           return {
             text:
-              `On average you make ${risk.expectancyR != null ? `${fmt.r(risk.expectancyR)} and ` : ''}${fmt.pnl(risk.expectancyMoney ?? 0)} a trade${where}, ` +
+              `On average you make ${showResult(units === 'r' ? 'both' : units, risk.expectancyR, risk.expectancyMoney)} a trade${where}, ` +
               `across ${stats.count} trade${stats.count === 1 ? '' : 's'}. ${(risk.expectancyMoney ?? 0) > 0 ? 'Over time, that’s an edge.' : 'Over time, that loses money.'}`,
             highlights: [
-              { label: 'Per trade', value: fmt.r(risk.expectancyR), tone: (risk.expectancyR ?? 0) >= 0 ? 'pos' : 'neg' },
-              { label: 'In money', value: fmt.pnl(risk.expectancyMoney ?? 0), tone: (risk.expectancyMoney ?? 0) >= 0 ? 'pos' : 'neg' },
+              { label: 'Average per trade', value: showResult(units, risk.expectancyR, risk.expectancyMoney), tone: resultValue(units, risk.expectancyR, risk.expectancyMoney) >= 0 ? 'pos' : 'neg' },
               { label: 'Win rate', value: fmt.pct(stats.winRate) },
               { label: 'Trades', value: String(stats.count) },
             ],
@@ -279,15 +282,15 @@ export function answerQuestion(
         }
         if (intent.metric === 'drawdown') {
           if (!risk.maxDrawdownMoney) {
-            return { text: `You haven’t had a drawdown${where} yet. Every trade kept you at or above your high.`, highlights: [], tradeIds, entryIds: [], toolCalls, scope };
+            return { text: `You haven’t had a dip${where} yet. Every trade kept you at or above your high.`, highlights: [], tradeIds, entryIds: [], toolCalls, scope };
           }
           return {
             text:
-              `Your biggest drawdown${where} was ${fmt.money(risk.maxDrawdownMoney)}${risk.maxDrawdownR ? ` (${risk.maxDrawdownR.toFixed(1)}R)` : ''}, over ${risk.drawdownTradeIds.length} trade${risk.drawdownTradeIds.length === 1 ? '' : 's'}. ` +
+              `Your biggest dip${where} was ${fmt.money(risk.maxDrawdownMoney)}${units !== 'money' && risk.maxDrawdownR ? ` (${risk.maxDrawdownR.toFixed(1)}R)` : ''}, over ${risk.drawdownTradeIds.length} trade${risk.drawdownTradeIds.length === 1 ? '' : 's'}. ` +
               (risk.recovered ? `You were back at your high ${risk.recoveryTrades} trade${risk.recoveryTrades === 1 ? '' : 's'} later.` : 'You haven’t climbed back to that high yet.'),
             highlights: [
-              { label: 'Drawdown', value: fmt.money(risk.maxDrawdownMoney), tone: 'neg' },
-              { label: 'In R', value: `${risk.maxDrawdownR.toFixed(1)}R` },
+              { label: 'Biggest dip', value: fmt.money(risk.maxDrawdownMoney), tone: 'neg' },
+              ...(units !== 'money' ? [{ label: 'In R', value: `${risk.maxDrawdownR.toFixed(1)}R` }] : []),
               { label: 'Recovery', value: risk.recovered ? `${risk.recoveryTrades} trades` : 'Not yet' },
             ],
             tradeIds: risk.drawdownTradeIds, entryIds: [], toolCalls, scope,
@@ -303,7 +306,7 @@ export function answerQuestion(
       }
       const detail =
         intent.metric === 'winRate'
-          ? `, ${stats.wins} wins out of ${stats.count} trade${stats.count === 1 ? '' : 's'}${stats.breakeven ? ` (${stats.breakeven} breakeven)` : ''}`
+          ? `, ${stats.wins} wins out of ${stats.count} trade${stats.count === 1 ? '' : 's'}${stats.breakeven ? ` (${stats.breakeven} flat)` : ''}`
           : intent.metric === 'avgR' || intent.metric === 'totalR'
             ? ` across ${stats.rCount} trade${stats.rCount === 1 ? '' : 's'} with a known R`
             : intent.metric === 'pnl'
@@ -323,14 +326,14 @@ export function answerQuestion(
       if (!groups.length) {
         return { text: `I couldn't find trades with a ${intent.by} recorded${scope !== 'all trades' ? ` for ${scope}` : ''}.`, highlights: [], tradeIds: [], entryIds: [], toolCalls, scope, unsure: true };
       }
-      const sorted = [...groups].sort(rankKey(intent.order));
+      const sorted = [...groups].sort(rankKey(intent.order, units !== 'r' || !groups.some((g) => g.stats.rCount > 0)));
       const top = sorted[0];
       const runnerUp = sorted[1];
       // Imports without an R column rank on P&L, so the answer must speak in dollars.
-      const useR = groups.some((g) => g.stats.rCount > 0);
-      const val = (st: Stats) => (useR ? fmt.r(st.totalR) : fmt.pnl(st.pnl));
+      const useR = units !== 'money' && groups.some((g) => g.stats.rCount > 0);
+      const val = (st: Stats) => (useR ? resTotal(st) : fmt.pnl(st.pnl));
       const net = useR ? top.stats.totalR : top.stats.pnl;
-      const unit = useR ? 'R' : 'money';
+      const unit = useR && units === 'r' ? 'R' : 'money';
       const word =
         intent.order === 'best'
           ? net > 0 ? `makes you the most ${unit}` : `loses you the least`
@@ -338,7 +341,7 @@ export function answerQuestion(
       return {
         text:
           `${top.name} ${word}: ${val(top.stats)} over ${top.stats.count} trade${top.stats.count === 1 ? '' : 's'} ` +
-          `(${fmt.pct(top.stats.winRate)} win rate${useR ? `, ${fmt.r(top.stats.avgR)} avg` : ''}).` +
+          `(${fmt.pct(top.stats.winRate)} win rate${useR ? `, ${res(top.stats)} a trade` : ''}).` +
           (runnerUp ? ` Next is ${runnerUp.name} at ${val(runnerUp.stats)}.` : ''),
         highlights: sorted.slice(0, 4).map((g) => ({
           label: g.name,
@@ -368,12 +371,12 @@ export function answerQuestion(
       }
       return {
         text:
-          `On the ${a.stats.count} trade${a.stats.count === 1 ? '' : 's'} where you logged “${intent.term}”, you won ${fmt.pct(a.stats.winRate)} with ${fmt.r(a.stats.avgR)} average. ` +
-          `On the other ${b.stats.count}, it's ${fmt.pct(b.stats.winRate)} and ${fmt.r(b.stats.avgR)}.`,
+          `On the ${a.stats.count} trade${a.stats.count === 1 ? '' : 's'} where you logged “${intent.term}”, you won ${fmt.pct(a.stats.winRate)} with ${res(a.stats)} on average. ` +
+          `On the other ${b.stats.count}, it's ${fmt.pct(b.stats.winRate)} and ${res(b.stats)}.`,
         highlights: [
-          { label: `With “${intent.term}”`, value: fmt.r(a.stats.avgR), tone: (a.stats.avgR ?? 0) >= 0 ? 'pos' : 'neg' },
+          { label: `With “${intent.term}”`, value: res(a.stats), tone: tone(a.stats) },
           { label: 'Win rate', value: fmt.pct(a.stats.winRate) },
-          { label: 'Without', value: fmt.r(b.stats.avgR), tone: (b.stats.avgR ?? 0) >= 0 ? 'pos' : 'neg' },
+          { label: 'Without', value: res(b.stats), tone: tone(b.stats) },
           { label: 'Win rate', value: fmt.pct(b.stats.winRate) },
         ],
         tradeIds: a.tradeIds, entryIds: notes.slice(0, 8).map((e) => e.id), toolCalls, scope,
@@ -395,12 +398,12 @@ export function answerQuestion(
       }
       return {
         text:
-          `When you followed your plan (${count(kept.stats.count)}), you won ${fmt.pct(kept.stats.winRate)} with ${fmt.r(kept.stats.avgR)} a trade. ` +
-          `When you didn’t (${count(broke.stats.count)}), it was ${fmt.pct(broke.stats.winRate)} and ${fmt.r(broke.stats.avgR)}.`,
+          `When you followed your plan (${count(kept.stats.count)}), you won ${fmt.pct(kept.stats.winRate)} with ${res(kept.stats)} a trade. ` +
+          `When you didn’t (${count(broke.stats.count)}), it was ${fmt.pct(broke.stats.winRate)} and ${res(broke.stats)}.`,
         highlights: [
-          { label: 'Followed plan', value: fmt.r(kept.stats.avgR), tone: (kept.stats.avgR ?? 0) >= 0 ? 'pos' : 'neg' },
+          { label: 'Followed plan', value: res(kept.stats), tone: tone(kept.stats) },
           { label: 'Win rate', value: fmt.pct(kept.stats.winRate) },
-          { label: 'Didn’t', value: fmt.r(broke.stats.avgR), tone: (broke.stats.avgR ?? 0) >= 0 ? 'pos' : 'neg' },
+          { label: 'Didn’t', value: res(broke.stats), tone: tone(broke.stats) },
           { label: 'Win rate', value: fmt.pct(broke.stats.winRate) },
         ],
         tradeIds: [...broke.tradeIds, ...kept.tradeIds], entryIds: [], toolCalls, scope,
@@ -435,7 +438,7 @@ export function answerQuestion(
         text:
           `You've written about “${intent.query}” ${notes.length} time${notes.length === 1 ? '' : 's'}` +
           (linkedStats && linkedStats.stats.count
-            ? `. The ${linkedStats.stats.count} linked trade${linkedStats.stats.count === 1 ? '' : 's'} returned ${fmt.r(linkedStats.stats.totalR)} in total.`
+            ? `. The ${linkedStats.stats.count} linked trade${linkedStats.stats.count === 1 ? '' : 's'} returned ${resTotal(linkedStats.stats)} in total.`
             : '.') +
           ' Here they are, most recent first.',
         highlights: linkedStats ? statHighlights(linkedStats.stats).slice(0, 2) : [],
@@ -448,7 +451,7 @@ export function answerQuestion(
       const { stats, tradeIds } = getStats(ctx, intent.filter);
       return {
         text:
-          `I'm not sure exactly what you're asking, so here's the summary for ${scope}: ${stats.count} trades, ${fmt.pct(stats.winRate)} win rate, ${fmt.r(stats.totalR)} total. ` +
+          `I'm not sure exactly what you're asking, so here's the summary for ${scope}: ${stats.count} trades, ${fmt.pct(stats.winRate)} win rate, ${resTotal(stats)} in total. ` +
           'Try asking about a win rate, a setup, a pair, a period, or something you wrote.',
         highlights: statHighlights(stats),
         tradeIds: tradeIds.slice(0, 10), entryIds: [], toolCalls, scope, unsure: true,

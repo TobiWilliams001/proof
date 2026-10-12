@@ -9,13 +9,13 @@ import { SPRING, stagger } from '@/components/motion';
 import { VoiceHelp } from '@/components/Voice';
 import { answerQuestion, type Answer } from '@/lib/ask';
 import { useDictation } from '@/lib/speech';
-import { useJournal } from '@/lib/store';
+import { useJournal, useUnits } from '@/lib/store';
 import s from './ask.module.css';
 
 // Grouped by what the trader is trying to learn, so the kinds of questions that work are obvious.
 const SUGGESTED: { group: string; qs: string[] }[] = [
-  { group: 'Performance', qs: ['What’s my win rate on my best setup?', 'Which setup makes me the most R?', 'What’s my P&L this month?'] },
-  { group: 'Leaks', qs: ['Which pair costs me the most?', 'What’s my average R on shorts?'] },
+  { group: 'Performance', qs: ['What’s my win rate on my best setup?', 'Which setup makes me the most?', 'How much did I make this month?'] },
+  { group: 'Leaks', qs: ['Which pair costs me the most?', 'How much do I make a trade on shorts?'] },
   { group: 'Discipline', qs: ['How do I do when I follow my plan?', 'How do I perform when I log “tired”?', 'What do I keep saying about early entries?'] },
 ];
 
@@ -27,6 +27,7 @@ interface Turn {
 
 export default function AskPage() {
   const { data, ready, logQuestion } = useJournal();
+  const { units } = useUnits();
   const [input, setInput] = useState('');
   const [turns, setTurns] = useState<Turn[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
@@ -42,7 +43,7 @@ export default function AskPage() {
     const question = q.trim();
     if (!question) return;
     mic.stop();
-    const a = answerQuestion(question, { trades: data.trades, entries: data.entries }, data.playbook);
+    const a = answerQuestion(question, { trades: data.trades, entries: data.entries }, data.playbook, new Date(), units);
     setTurns((t) => [...t, { id: Date.now(), q: question, a }]);
     setInput('');
     logQuestion({ question, toolCalls: a.toolCalls, answer: a.text, tradeIds: a.tradeIds, entryIds: a.entryIds });
