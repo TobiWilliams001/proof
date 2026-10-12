@@ -29,7 +29,7 @@ const WINS = [
   ['Find your edge.', 'See which setups, pairs and sessions make you money, in R and in your account currency, so you can do more of what works.'],
   ['Spot the leaks.', 'See the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Once you can see them, you can work on them.'],
   ['Trade your plan under pressure.', 'For prop traders, consistency matters most. Proof shows whether you’re actually following your plan, so a bad week doesn’t quietly become a habit.'],
-  ['Feel in control again.', 'No more guessing whether you’re improving. Your weekly review shows where you stand and one small thing to try next.'],
+  ['Know where you stand.', 'You open your week already knowing which setup to trust, which to leave alone, and the one small thing worth trying next.'],
 ];
 
 // Questions, not results: Proof never markets outcomes it hasn't measured for you.
