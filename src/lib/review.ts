@@ -9,8 +9,8 @@ export interface WeeklyReview {
   stats: Stats;
   trades: Trade[];
   distribution: { bin: number; count: number }[];
-  bestSetup?: { name: string; totalR: number; count: number };
-  worstSetup?: { name: string; totalR: number; count: number };
+  bestSetup?: SetupSummary;
+  worstSetup?: SetupSummary;
   /**
    * Share of trades where the plan was followed. From the one-tap answers when
    * there are any; otherwise estimated from rule-break notes.
@@ -63,7 +63,10 @@ export function themesFrom(entries: Entry[], limit = 6) {
     .slice(0, limit);
 }
 
-export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWeek: Date): WeeklyReview {
+export interface SetupSummary { name: string; totalR: number; pnl: number; count: number; stats: Stats }
+
+/** byMoney ranks setups by P&L rather than R, for traders who read results in money. */
+export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWeek: Date, byMoney = false): WeeklyReview {
   const start = startOfWeek(anyDayInWeek);
   const end = addDays(start, 7);
   const inWeek = (iso: string) => iso >= start.toISOString() && iso < end.toISOString();
@@ -80,8 +83,9 @@ export function buildWeeklyReview(trades: Trade[], entries: Entry[], anyDayInWee
   const broken = Math.min(weekTrades.length, brokenTradeIds.size + unlinkedBreaks);
 
   const setups = groupStats(weekTrades, 'setup').filter((g) => g.name !== 'Untagged');
-  const toSummary = (g: (typeof setups)[number] | undefined) =>
-    g && { name: g.name, totalR: g.stats.totalR, count: g.stats.count };
+  if (byMoney) setups.sort((a, b) => b.stats.pnl - a.stats.pnl);
+  const toSummary = (g: (typeof setups)[number] | undefined): SetupSummary | undefined =>
+    g && { name: g.name, totalR: g.stats.totalR, pnl: g.stats.pnl, count: g.stats.count, stats: g.stats };
 
   const notedTradeIds = new Set(weekEntries.map((e) => e.tradeId).filter(Boolean));
 

@@ -3,6 +3,7 @@ import { fmt } from './format';
 import { matchTags } from './structure';
 import { computeStats, confidenceFor, groupStats, outcomeOf, type Confidence } from './stats';
 import { congruence } from './tools';
+import { showResult, type Units } from './units';
 import { closedOnly, isOpen, type Entry, type Playbook, type Trade } from './types';
 
 /**
@@ -32,7 +33,12 @@ export function buildCoachNote(
   entries: Entry[],
   playbook: Playbook,
   anyDayInWeek: Date,
+  units: Units = 'r',
 ): CoachLine[] {
+  // Results in the trader's units: money by default in the app, R for risk-sizers.
+  const res = (r: number | null | undefined, money: number | null | undefined) => showResult(units, r, money);
+  const avgMoney = (st: { pnl: number; count: number }) => (st.count ? st.pnl / st.count : null);
+  const useR = units === 'r';
   const start = startOfWeek(anyDayInWeek);
   const end = addDays(start, 7);
   const inWeek = (iso: string) => iso >= start.toISOString() && iso < end.toISOString();
@@ -45,14 +51,15 @@ export function buildCoachNote(
   // 1, What happened.
   const st = computeStats(trades);
   if (st.count) {
-    const parts = [st.wins && `${st.wins} won`, st.losses && `${st.losses} lost`, st.breakeven && `${st.breakeven} broke even`].filter(Boolean);
+    const parts = [st.wins && `${st.wins} won`, st.losses && `${st.losses} lost`, st.breakeven && `${st.breakeven} ended flat`].filter(Boolean);
     const open = stillOpen.length ? `, and ${count(stillOpen.length, 'position')} still open` : '';
-    const flat = st.rCount ? Math.abs(st.totalR) < 0.05 : Math.abs(st.pnl) < 0.01;
+    const inR = useR && st.rCount > 0;
+    const flat = inR ? Math.abs(st.totalR) < 0.05 : Math.abs(st.pnl) < 0.01;
     const net = flat
       ? 'flat'
-      : st.rCount
+      : inR
         ? `${st.totalR > 0 ? 'up' : 'down'} ${fmt.r(st.totalR).replace(/^[+−]/, '')}`
-        : `${st.pnl > 0 ? 'up' : 'down'} ${fmt.money(Math.abs(st.pnl))}`;
+        : `${st.pnl > 0 ? 'up' : 'down'} ${fmt.money(Math.abs(st.pnl))}${units === 'both' && st.rCount ? ` (${fmt.r(st.totalR)})` : ''}`;
     lines.push({
       kind: 'summary',
       text: `This week you took ${count(st.count, 'trade')}: ${parts.join(', ')}${open}. You finished ${net}.`,
@@ -112,26 +119,30 @@ export function buildCoachNote(
 
   // 3, Setups compared over a longer window, so one week's noise doesn't decide it.
   const window = closedOnly(allTrades).filter((t) => t.closedAt >= addDays(start, -21).toISOString() && t.closedAt < end.toISOString());
-  const setups = groupStats(window, 'setup').filter((g) => g.name !== 'Untagged' && g.stats.rCount >= 3 && g.stats.avgR != null);
+  // Compared per trade, in R for risk-sizers or money otherwise.
+  const perTrade = (g: { stats: { avgR: number | null; pnl: number; count: number } }) => (useR ? g.stats.avgR : avgMoney(g.stats));
+  const setups = groupStats(window, 'setup').filter((g) => g.name !== 'Untagged' && (useR ? g.stats.rCount : g.stats.count) >= 3 && perTrade(g) != null);
   if (setups.length >= 2) {
-    const ranked = [...setups].sort((a, b) => b.stats.avgR! - a.stats.avgR!);
+    const ranked = [...setups].sort((a, b) => perTrade(b)! - perTrade(a)!);
     const best = ranked[0];
     const worst = ranked[ranked.length - 1];
-    const gap = best.stats.avgR! - worst.stats.avgR!;
-    if (gap >= 0.5) {
+    const gap = perTrade(best)! - perTrade(worst)!;
+    // A meaningful gap: half a unit of risk, or (in money) a fifth of the bigger average.
+    const meaningful = useR ? gap >= 0.5 : gap > 0 && gap >= 0.2 * Math.max(Math.abs(perTrade(best)!), Math.abs(perTrade(worst)!));
+    if (meaningful) {
       // As sure as the smaller of the two samples, and only if the gap holds over time.
       const confidence = confidenceFor(worst.trades.length < best.trades.length ? worst.trades : best.trades, avgR);
       lines.push({
         confidence,
         kind: 'compare',
-        text: `Over the last four weeks, ${worst.name} has trailed ${best.name} by ${gap.toFixed(1)}R a trade on average (${fmt.r(worst.stats.avgR)} vs ${fmt.r(best.stats.avgR)}).`,
+        text: `Over the last four weeks, ${worst.name} has trailed ${best.name} by ${useR ? `${gap.toFixed(1)}R` : fmt.money(gap)} a trade on average (${res(worst.stats.avgR, avgMoney(worst.stats))} vs ${res(best.stats.avgR, avgMoney(best.stats))}).`,
         tradeIds: [...best.trades, ...worst.trades].map((t) => t.id),
         entryIds: [],
       });
       if (worthTesting(confidence)) {
         suggestion ??= {
           kind: 'suggestion',
-          text: `${worst.name}: ${worst.stats.wins} of ${worst.stats.count} won, ${fmt.r(worst.stats.totalR)}. Try your next 10 trades without it and compare.`,
+          text: `${worst.name}: ${worst.stats.wins} of ${worst.stats.count} won, ${res(worst.stats.rCount ? worst.stats.totalR : null, worst.stats.pnl)}. Try your next 10 trades without it and compare.`,
           tradeIds: worst.trades.map((t) => t.id),
           entryIds: [],
         };
@@ -148,12 +159,13 @@ export function buildCoachNote(
     let text = `You followed your plan on ${kept.length} of ${answered.length} trades.`;
     const keptR = computeStats(kept);
     const brokeR = computeStats(broke);
-    if (broke.length && brokeR.rCount && keptR.rCount) {
+    if (broke.length && (useR ? brokeR.rCount && keptR.rCount : true)) {
       // Average against average, so the comparison is fair.
-      text += ` When you didn’t, you averaged ${fmt.r(brokeR.avgR)} a trade; when you did, ${fmt.r(keptR.avgR)}.`;
+      text += ` When you didn’t, you averaged ${res(brokeR.avgR, avgMoney(brokeR))} a trade; when you did, ${res(keptR.avgR, avgMoney(keptR))}.`;
     }
     const confidence = confidenceFor(answered);
-    if (keptR.avgR != null && brokeR.avgR != null && keptR.avgR > brokeR.avgR && broke.length && worthTesting(confidence)) {
+    const keptBetter = useR ? keptR.avgR != null && brokeR.avgR != null && keptR.avgR > brokeR.avgR : (avgMoney(keptR) ?? 0) > (avgMoney(brokeR) ?? 0);
+    if (keptBetter && broke.length && worthTesting(confidence)) {
       suggestion ??= {
         kind: 'suggestion',
         text: 'Try your next 10 trades taking only the ones that fit your plan, and compare.',
