@@ -2,24 +2,22 @@
 
 **Structure:** AIDA, Attention → Interest → Desire → Action.
 **Core insight:** traders don't buy learning, they buy winning, consistency, profit, passing and keeping funded accounts, and the confidence of being in control. Sell the win. Deliver it through learning.
-**Voice:** calm, honest, trader-to-trader. No hype. No invented numbers or testimonials, example insights are clearly marked as examples until real ones exist.
+**Voice:** calm, honest, trader-to-trader. Natural, not salesy: no hype, no fear hooks, no promises Proof can't keep (passing a challenge, "fixing" anything). No invented numbers or testimonials, example insights are clearly marked as examples until real ones exist. Only claim what is built today.
 
 ---
 
 ## ATTENTION, Hero
 
-**Headline:** Find the leaks costing you money.
+**Headline:** See what's really working in your trading.
 
-**Subheadline:** Proof syncs your trades, lets you say what happened in seconds, and shows you where you win and where you keep losing.
+**Subheadline:** Proof brings in your trades on its own, lets you note what happened in a few seconds, and shows you, with evidence, where you do well and where you keep slipping.
 
 **Primary CTA:** Join the waitlist
 **Secondary CTA:** See how it works
 
 *Alternative headlines to test:*
-- The journal that takes 15 seconds.
-- Stop paying for the same mistake twice.
-- Know your edge. Cut your leaks. Keep your account.
-- The trading journal that pays for itself.
+- Find the leaks costing you money.
+- A trading journal you'll actually keep.
 
 ---
 
@@ -38,10 +36,10 @@ So the moment passes. And the mistakes that drain your account stay invisible, r
 ## INTEREST, How it works
 
 **1. Connect once.**
-Link your account once. Every trade, past and future, comes in on its own. You never type an entry, stop or result again.
+Link your MetaTrader account once. Your trades, past and future, come in on their own, so there's no typing entries, stops or results.
 
 **2. Say what happened.**
-When a trade closes, Proof asks one question: *what happened?* Type it or speak it, the way you'd tell a friend. Keep it as written, or let Proof organise it around your setups. About fifteen seconds.
+When a trade closes, Proof asks one question: *what happened?* Type it or speak it, the way you'd tell a friend. Keep it as written, or let Proof organise it around your setups. A few seconds, and it's done.
 
 **3. See where the money goes.**
 Ask your journal anything, like "Which setup makes me the most?" or "How do I trade after a loss?" You get answers from your own trades, with every trade behind the answer one tap away.
@@ -53,19 +51,19 @@ Ask your journal anything, like "Which setup makes me the most?" or "How do I tr
 **Headline:** Trade with the clarity of someone who knows their numbers.
 
 **Journaling that fits between trades.**
-No forms. No typing numbers. No setting aside an hour on Sunday. Fifteen seconds after a trade, from your phone or your desk, and it's done. When journaling is this easy, you keep doing it. That's where every other benefit starts.
+No forms. No typing numbers. No setting aside an hour on Sunday. A few seconds after a trade, from your phone or your desk, and it's done. When journaling is this easy, you keep doing it. That's where every other benefit starts.
 
 **Find your edge.**
 See which setups, pairs and sessions make you money, in R and in your account currency, so you can do more of what works.
 
-**Stop the leaks.**
-Spot the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Seen clearly, they're fixable.
+**Spot the leaks.**
+See the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Once you can see them, you can work on them.
 
-**Pass the challenge. Keep the account.**
-For prop traders, consistency is everything. Proof shows whether you're trading your plan, before a bad week turns into a lost account.
+**Trade your plan under pressure.**
+For prop traders, consistency matters most. Proof shows whether you're actually following your plan, so a bad week doesn't quietly become a habit.
 
 **Feel in control again.**
-No more wondering if you're improving. Your weekly review shows where you stand and one thing to try next.
+No more guessing whether you're improving. Your weekly review shows where you stand and one small thing to try next.
 
 *Questions you can ask your journal* (no example results; Proof never markets outcomes it hasn't measured for you):
 - "How do my trades do in the hour after a loss?"
@@ -96,7 +94,7 @@ Your discipline is part of your edge. Proof makes it visible.
 
 ## DESIRE, Answers you can trust
 
-Proof never makes up a number. Every figure is calculated from your actual trades, and every answer shows the trades it came from. If your data can't answer a question, Proof tells you.
+Proof never makes up a number. Every figure is calculated from your actual trades, and every answer shows the trades it came from. If your data can't answer a question, Proof tells you. And when something looks worth changing, it suggests a small experiment to try, not an order.
 
 ---
 
@@ -111,8 +109,8 @@ Proof never makes up a number. Every figure is calculated from your actual trade
 
 ## Works with
 
-MetaTrader 4 · MetaTrader 5 · cTrader · Bybit · Binance
-More platforms based on what traders ask for.
+MetaTrader 4 · MetaTrader 5
+cTrader, Bybit and Binance are next, in the order traders ask for them.
 
 ---
 
@@ -127,6 +125,9 @@ Yes, if your firm uses MetaTrader 4 or 5. Connect with your investor password, t
 **Will it tell me how to trade?**
 No. Your strategy stays yours. Proof shows you, with evidence, what's working in it and what isn't.
 
+**Where is my journal stored?**
+For now, on your device. You can export or delete it any time. Syncing across devices is coming.
+
 **What does it cost?**
 Free during early access.
 
@@ -134,8 +135,8 @@ Free during early access.
 
 ## ACTION, Final CTA
 
-**Headline:** Your next losing streak is already in your data. See it first.
+**Headline:** Your trades already hold the answers.
 
-**Body:** Connect your account, say what happened, and find out where your money really goes.
+**Body:** Connect your account, note what happened, and see what your own trading is telling you.
 
 **CTA:** Join the waitlist, free during early access
