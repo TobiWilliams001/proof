@@ -15,6 +15,9 @@ import { useJournal, useUnits } from '@/lib/store';
 import { Term } from '@/components/Term';
 import { StartExperiment } from '@/components/StartExperiment';
 import { ExperimentCard } from '@/components/ExperimentCard';
+import { ExperimentThatWeek, RulesThisWeek } from '@/components/ReviewAgent';
+import { useRules } from '@/lib/rules/useRules';
+import { rulesWeek } from '@/lib/rules/week';
 import { useExperiments } from '@/lib/experiments/useExperiments';
 import { useMounted } from '@/lib/useMounted';
 import { useNow } from '@/lib/useNow';
@@ -34,7 +37,12 @@ export default function ReviewPage() {
   }, []);
   const mounted = useMounted();
   const anchor = useMemo(() => addDays(startOfWeek(new Date()), offset * 7), [offset]);
-  const r = useMemo(() => buildWeeklyReview(data.trades, data.entries, anchor, u.units === 'money'), [data.trades, data.entries, anchor, u.units]);
+  const { rules } = useRules();
+  const r = useMemo(() => {
+    const from = startOfWeek(anchor);
+    const broken = rulesWeek(rules, data.trades, from, addDays(from, 7)).flatMap((w) => w.broken.flatMap((b) => b.tradeIds));
+    return buildWeeklyReview(data.trades, data.entries, anchor, u.units === 'money', broken);
+  }, [data.trades, data.entries, anchor, u.units, rules]);
   const tradesById = useMemo(() => new Map(data.trades.map((t) => [t.id, t])), [data.trades]);
   const coach = useMemo(() => buildCoachNote(data.trades, data.entries, data.playbook, anchor, u.units), [data, anchor, u.units]);
 
@@ -51,6 +59,8 @@ export default function ReviewPage() {
   const label = offset === 0 ? 'This week' : offset === -1 ? 'Last week' : range;
   const empty = ready && r.stats.count === 0 && !r.missed.length && !r.reflections.length && !r.plans.length;
   const hasTrades = r.stats.count > 0;
+  const weekFrom = useMemo(() => startOfWeek(anchor), [anchor]);
+  const weekTo = useMemo(() => addDays(startOfWeek(anchor), 7), [anchor]);
   const result = u.split(r.stats.rCount ? r.stats.totalR : null, r.stats.pnl);
   const avg = u.split(r.stats.avgR, hasTrades ? r.stats.pnl / r.stats.count : null);
 
@@ -124,7 +134,7 @@ export default function ReviewPage() {
                 sub={
                   r.adherenceSource === 'answers'
                     ? `from your answers on ${r.planAnswered} trade${r.planAnswered === 1 ? '' : 's'}`
-                    : `${r.ruleBreaks.length} rule break${r.ruleBreaks.length === 1 ? '' : 's'} logged`
+                    : r.brokenCount ? `${r.brokenCount} trade${r.brokenCount === 1 ? '' : 's'} broke a rule` : 'no rules broken'
                 }
               />
               <Meter
@@ -134,6 +144,8 @@ export default function ReviewPage() {
                 sub="trades with a note"
               />
             </div>
+            <RulesThisWeek from={weekFrom} to={weekTo} />
+            {offset < 0 && <ExperimentThatWeek from={weekFrom} to={weekTo} />}
             <Fold title="Rule breaks" items={r.ruleBreaks} tradesById={tradesById} />
             <Fold
               title="Missed trades"
