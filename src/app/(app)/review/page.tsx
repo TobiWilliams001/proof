@@ -17,6 +17,7 @@ import { StartExperiment } from '@/components/StartExperiment';
 import { ExperimentCard } from '@/components/ExperimentCard';
 import { useExperiments } from '@/lib/experiments/useExperiments';
 import { useMounted } from '@/lib/useMounted';
+import { useNow } from '@/lib/useNow';
 import type { Entry, Trade } from '@/lib/types';
 import s from './review.module.css';
 
@@ -299,15 +300,22 @@ function Fold({
  */
 /** A suggestion, and the one tap that turns it into a tracked experiment. */
 function Suggestion({ line }: { line: CoachLine }) {
-  const { running, ready } = useExperiments();
+  const { running, ready, experiments } = useExperiments();
   const [starting, setStarting] = useState(false);
   const same = running && line.experiment && running.insightId === line.experiment.insightId;
+  // Just tried it: don't offer the same experiment again for a couple of weeks.
+  const now = useNow();
+  const recent = experiments.find(
+    (e) => e.status === 'complete' && e.insightId === line.experiment?.insightId && e.endAt && now - Date.parse(e.endAt) < 14 * 864e5,
+  );
   return (
     <div className={s.suggestion}>
       <p>{line.text}</p>
       {line.experiment && ready && (
         same ? (
           <p className={s.suggestionNote}>This experiment is running.</p>
+        ) : recent ? (
+          <p className={s.suggestionNote}>You tried this recently. See the result below.</p>
         ) : !running ? (
           <button className="btn btn-soft btn-sm" onClick={() => setStarting(true)}>
             <FlaskConical size={14} /> Start this experiment
