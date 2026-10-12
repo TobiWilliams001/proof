@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Reveal } from '@/components/motion';
 import { ThemeToggle } from '@/components/ThemeSwitch';
-import { WaitlistForm } from '@/components/WaitlistForm';
+import { NavCta } from './NavCta';
 import s from './landing.module.css';
 
 // Copy: docs/PROOF_COPY.md (AIDA). Keep the two in sync.
@@ -51,7 +51,7 @@ const FAQ = [
   ['Do I have to talk to it?', 'No. Type or speak, whatever suits the moment.'],
   ['Does it work with prop-firm accounts?', 'Yes, if your firm uses MetaTrader 4 or 5. Connect with your investor password, the view-only one your firm gives you.'],
   ['Will it tell me how to trade?', 'No. Your strategy stays yours. Proof shows you, with evidence, what’s working in it and what isn’t.'],
-  ['Where is my journal stored?', 'For now, on your device. You can export or delete it any time. Syncing across devices is coming.'],
+  ['Where is my journal stored?', 'In your Proof account, so it’s there on every phone and computer you sign in on. Only you can see it, and you can export or delete it any time.'],
   ['What does it cost?', 'Free during early access.'],
 ];
 
@@ -63,9 +63,8 @@ export default function Landing() {
           <Link href="/" aria-label="Proof home"><Logo size={24} /></Link>
           <div className={s.navLinks}>
             <a href="#how" className={s.navLink}>How it works</a>
-            <Link href="/journal" className={`${s.navLink} ${s.navTry}`}>Try it</Link>
             <ThemeToggle />
-            <a href="#join" className={s.navCta}>Join the waitlist</a>
+            <NavCta className={s.navCta} />
           </div>
         </div>
       </nav>
@@ -83,8 +82,8 @@ export default function Landing() {
           <Reveal delay={0.14}><p className={s.lede}>
             Proof brings in your trades on its own, lets you note what happened in a few seconds, and shows you, with evidence, where you do well and where you keep slipping.
           </p></Reveal>
-          <Reveal delay={0.22} className={s.heroCta} id="join">
-            <WaitlistForm />
+          <Reveal delay={0.22} className={s.heroCta}>
+            <Link href="/start" className={s.cta}>Get started free <ArrowRight size={16} /></Link>
             <a href="#how" className={s.secondary}>See how it works <ArrowRight size={15} /></a>
           </Reveal>
         </div>
@@ -265,7 +264,7 @@ export default function Landing() {
         <div className={`${s.wrap} ${s.narrow}`}>
           <Reveal><h2 className={s.finalH}>Your trades already hold the answers.</h2></Reveal>
           <p className={s.finalBody}>Connect your account, note what happened, and see what your own trading is telling you.</p>
-          <WaitlistForm cta="Join the waitlist" inverted />
+          <Link href="/start" className={`${s.cta} ${s.ctaInverted}`}>Get started free <ArrowRight size={16} /></Link>
           <p className={s.finalNote}>Free during early access</p>
         </div>
       </section>

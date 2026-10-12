@@ -13,7 +13,7 @@
 
 **Subheadline:** Proof brings in your trades on its own, lets you note what happened in a few seconds, and shows you, with evidence, where you do well and where you keep slipping.
 
-**Primary CTA:** Join the waitlist
+**Primary CTA:** Get started free
 **Secondary CTA:** See how it works
 
 *Alternative headlines to test:*
@@ -127,7 +127,7 @@ Yes, if your firm uses MetaTrader 4 or 5. Connect with your investor password, t
 No. Your strategy stays yours. Proof shows you, with evidence, what's working in it and what isn't.
 
 **Where is my journal stored?**
-For now, on your device. You can export or delete it any time. Syncing across devices is coming.
+In your Proof account, so it's there on every phone and computer you sign in on. Only you can see it, and you can export or delete it any time.
 
 **What does it cost?**
 Free during early access.
@@ -140,4 +140,4 @@ Free during early access.
 
 **Body:** Connect your account, note what happened, and see what your own trading is telling you.
 
-**CTA:** Join the waitlist, free during early access
+**CTA:** Get started free, free during early access
