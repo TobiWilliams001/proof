@@ -1,4 +1,4 @@
-import { computeStats, groupStats, type GroupKey, type Stats } from './stats';
+import { computeStats, groupStats, outcomeOf, type GroupKey, type Stats } from './stats';
 import { isOpen, type Entry, type EntryKind, type Session, type Side, type Trade } from './types';
 
 /**
@@ -109,5 +109,27 @@ export function searchNotes(ctx: JournalContext, f: NoteFilter = {}): Entry[] {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export const TOOL_NAMES = ['get_stats', 'list_trades', 'group_stats', 'search_notes'] as const;
+/**
+ * Trades opened soon after a losing trade closed, against all the others.
+ * The loss can be on any pair or setup: tilt doesn't care which chart it was.
+ */
+export function afterLoss(ctx: JournalContext, f: TradeFilter = {}, minutes = 60) {
+  const lossTimes = ctx.trades
+    .filter((t) => !isOpen(t) && outcomeOf(t) === 'loss')
+    .map((t) => new Date(t.closedAt).getTime())
+    .sort((a, b) => a - b);
+  const window = minutes * 60_000;
+  const after: Trade[] = [];
+  const rest: Trade[] = [];
+  for (const t of listTrades(ctx, f)) {
+    const opened = new Date(t.openedAt).getTime();
+    (lossTimes.some((l) => l < opened && opened - l <= window) ? after : rest).push(t);
+  }
+  return {
+    after: { stats: computeStats(after), tradeIds: after.map((t) => t.id) },
+    rest: { stats: computeStats(rest), tradeIds: rest.map((t) => t.id) },
+  };
+}
+
+export const TOOL_NAMES = ['get_stats', 'list_trades', 'group_stats', 'search_notes', 'after_loss'] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];

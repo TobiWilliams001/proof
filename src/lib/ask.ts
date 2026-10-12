@@ -7,6 +7,7 @@ import {
   getStats,
   listTrades,
   searchNotes,
+  afterLoss,
   type JournalContext,
   type ToolName,
   type TradeFilter,
@@ -28,6 +29,7 @@ export type Intent =
   | { type: 'rank'; by: GroupKey; order: 'best' | 'worst'; filter: TradeFilter }
   | { type: 'noteCompare'; term: string; filter: TradeFilter }
   | { type: 'planCompare'; filter: TradeFilter }
+  | { type: 'afterLoss'; filter: TradeFilter; minutes: number }
   | { type: 'notes'; query: string; filter: TradeFilter }
   | { type: 'overview'; filter: TradeFilter };
 
@@ -142,6 +144,14 @@ export function parseQuestion(
   // "How do I do when I follow my plan?", uses the one-tap congruence answers.
   if (/\b(follow(ed|ing)?|stick(ing)? to|stuck to|keep to|break|broke|breaking|ignore[ds]?)\s+(to\s+)?(my\s+|the\s+)?plans?\b/.test(q)) {
     return { intent: { type: 'planCompare', filter }, scope };
+  }
+
+  // "How do my trades do in the hour after a loss?"
+  if (/\bafter (a |my |each |every )?(loss|losses|losing trade|losing trades|a losing trade)\b/.test(q)) {
+    const mins = q.match(/\b(\d{1,3}) ?(min|mins|minutes)\b/);
+    const hours = q.match(/\b(\d{1,2}) ?(hour|hours|hr|hrs)\b/);
+    const minutes = mins ? Number(mins[1]) : hours ? Number(hours[1]) * 60 : 60;
+    return { intent: { type: 'afterLoss', filter, minutes }, scope };
   }
 
   // "How do I perform when I log 'tired'?"
@@ -410,6 +420,32 @@ export function answerQuestion(
         // As sure as the smaller side of the comparison.
         confidence: confidenceFor(ctx.trades.filter((t) => (broke.stats.count < kept.stats.count ? broke : kept).tradeIds.includes(t.id))),
         basis: Math.min(broke.stats.count, kept.stats.count),
+      };
+    }
+
+    case 'afterLoss': {
+      toolCalls.push({ tool: 'after_loss', args: { ...intent.filter, minutes: intent.minutes } });
+      const { after, rest } = afterLoss(ctx, intent.filter, intent.minutes);
+      const span = intent.minutes === 60 ? 'the hour' : intent.minutes % 60 === 0 ? `the ${intent.minutes / 60} hours` : `the ${intent.minutes} minutes`;
+      if (!after.stats.count) {
+        return {
+          text: `You haven’t opened a trade within ${span} after a loss${scope !== 'all trades' ? ` for ${scope}` : ''}. Nothing to compare yet.`,
+          highlights: [], tradeIds: [], entryIds: [], toolCalls, scope, unsure: true,
+        };
+      }
+      return {
+        text:
+          `Trades you opened within ${span} after a loss (${count(after.stats.count)}) won ${fmt.pct(after.stats.winRate)}, with ${res(after.stats)} a trade. ` +
+          `The rest (${count(rest.stats.count)}) won ${fmt.pct(rest.stats.winRate)}, with ${res(rest.stats)}.`,
+        highlights: [
+          { label: 'After a loss', value: res(after.stats), tone: tone(after.stats) },
+          { label: 'Win rate', value: fmt.pct(after.stats.winRate) },
+          { label: 'Other times', value: res(rest.stats), tone: tone(rest.stats) },
+          { label: 'Win rate', value: fmt.pct(rest.stats.winRate) },
+        ],
+        tradeIds: after.tradeIds, entryIds: [], toolCalls, scope,
+        confidence: confidenceFor(ctx.trades.filter((t) => after.tradeIds.includes(t.id))),
+        basis: after.stats.count,
       };
     }
 

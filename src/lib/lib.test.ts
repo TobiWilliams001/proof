@@ -132,6 +132,21 @@ describe('ask your journal', () => {
     expect(a.text).toContain(`${Math.round(s.winRate * 100)}%`);
   });
 
+  it('compares trades opened soon after a loss with the rest', () => {
+    const t = (id: string, openedAt: string, closedAt: string, pnl: number) => ({
+      id, symbol: 'EURUSD', side: 'long' as const, openedAt, closedAt, entry: 1, exit: 1, size: 1, pnl, r: null, session: 'London' as const, source: 'manual' as const,
+    });
+    const trades = [
+      t('loss', '2026-10-01T09:00:00Z', '2026-10-01T10:00:00Z', -100),
+      t('tilt', '2026-10-01T10:20:00Z', '2026-10-01T10:40:00Z', -50),
+      t('calm', '2026-10-01T14:00:00Z', '2026-10-01T15:00:00Z', 80),
+    ];
+    const a = answerQuestion('How do my trades do in the hour after a loss?', { trades, entries: [] }, demo.playbook, now, 'money');
+    expect(a.toolCalls[0].tool).toBe('after_loss');
+    expect(a.tradeIds).toEqual(['tilt']);
+    expect(a.text).toContain('within the hour after a loss (1 trade) won 0%');
+  });
+
   it('is honest when there is no data', () => {
     const a = answerQuestion('win rate?', { trades: [], entries: [] }, demo.playbook, now);
     expect(a.unsure).toBe(true);
