@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className={s.railFoot}>
           <span className={s.syncDot} data-on={ready && data.trades.length > 0} />
           <span className="faint" style={{ fontSize: 12 }}>
-            {ready ? `${data.trades.length} trades · stored on this device` : 'Loading…'}
+            {ready ? `${data.trades.length} trades · saved to your account` : 'Loading…'}
           </span>
         </div>
       </aside>
@@ -85,9 +85,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         {saveFailed && (
           <div className={s.saveBanner} role="alert">
-            <strong>Your latest changes couldn’t be saved on this device.</strong>{' '}
-            Your browser may be out of space or in private mode. Export your journal from{' '}
-            <Link href="/settings">Settings</Link> so nothing is lost.
+            <strong>Your latest changes aren’t saved to your account yet.</strong>{' '}
+            They’re kept on this device and will save when you’re back online.
           </div>
         )}
         {/* Keyed on the route so each screen settles in instead of snapping. */}

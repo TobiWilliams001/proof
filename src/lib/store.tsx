@@ -6,13 +6,14 @@ import { rFromPrices, type Stats } from './stats';
 import { resultValue, showResult, type Units } from './units';
 import { linkEarlyNotes } from './link';
 import { uid } from './id';
-import { emptyJournal, storage } from './storage';
+import { cloudProvider, emptyJournal, MERGED_EVENT } from './storage';
+import { supabase } from './supabase/client';
 import { isOpen, type Entry, type JournalData, type Playbook, type QuestionLog, type SyncAccount, type Trade, type TraderProfile } from './types';
 
 interface JournalApi {
   data: JournalData;
   ready: boolean;
-  /** True when the last save to this device failed, nothing is lost silently. */
+  /** True when the last save to the account failed; nothing is lost silently. */
   saveFailed: boolean;
   addEntry(e: Omit<Entry, 'id' | 'createdAt'>): Entry;
   updateEntry(id: string, patch: Partial<Entry>): void;
@@ -39,41 +40,72 @@ interface JournalApi {
 
 const Ctx = createContext<JournalApi | null>(null);
 
-export function JournalProvider({ children }: { children: React.ReactNode }) {
+export function JournalProvider({ userId, children }: { userId: string; children: React.ReactNode }) {
   const [data, setData] = useState<JournalData>(emptyJournal);
   const [ready, setReady] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const loaded = useRef(false);
-  const fromOtherTab = useRef(false);
+  /** Set when data came from the account, so it isn't saved straight back. */
+  const fromAccount = useRef(false);
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const storage = useMemo(() => cloudProvider(userId, supabase()), [userId]);
 
   useEffect(() => {
     storage.load().then((d) => {
       loaded.current = true;
+      fromAccount.current = true;
       setData(d);
       setReady(true);
     });
-  }, []);
+  }, [storage]);
 
+  // Saves are batched: a burst of changes (an import, a sync) is one write.
   useEffect(() => {
-    if (fromOtherTab.current) {
-      fromOtherTab.current = false;
+    if (fromAccount.current) {
+      fromAccount.current = false;
       return;
     }
-    if (loaded.current) storage.save(data).then((ok) => setSaveFailed(!ok));
-  }, [data]);
+    if (!loaded.current) return;
+    if (pending.current) clearTimeout(pending.current);
+    pending.current = setTimeout(() => {
+      pending.current = null;
+      storage.save(data).then((ok) => setSaveFailed(!ok));
+    }, 500);
+  }, [data, storage]);
 
-  // The installed app and a browser tab share storage; pick up the other's writes
-  // so a stale tab never overwrites notes written elsewhere.
+  // Notes written on the phone show up on the laptop when it comes back into view,
+  // and a save that failed offline goes through once the connection returns.
   useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === null || e.key.startsWith('proof.journal')) storage.load().then((d) => {
-          fromOtherTab.current = true;
-          setData(d);
-        });
+    const pull = () => {
+      if (pending.current || document.visibilityState !== 'visible') return;
+      storage.refresh().then((d) => {
+        if (!d) return;
+        fromAccount.current = true;
+        setData(d);
+      });
     };
+    const online = () => setData((d) => ({ ...d }));
+    const merged = (e: Event) => {
+      fromAccount.current = true;
+      setData((e as CustomEvent<JournalData>).detail);
+    };
+    window.addEventListener(MERGED_EVENT, merged);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key.startsWith('proof.journal')) pull();
+    };
+    document.addEventListener('visibilitychange', pull);
+    window.addEventListener('focus', pull);
+    window.addEventListener('online', online);
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+    return () => {
+      document.removeEventListener('visibilitychange', pull);
+      window.removeEventListener('focus', pull);
+      window.removeEventListener('online', online);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(MERGED_EVENT, merged);
+    };
+  }, [storage]);
 
   const update = useCallback((fn: (d: JournalData) => JournalData) => setData(fn), []);
 
@@ -193,10 +225,11 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
       },
       async clearAll() {
         await storage.clear();
+        fromAccount.current = true;
         setData(emptyJournal());
       },
     }),
-    [data, ready, saveFailed, update],
+    [data, ready, saveFailed, update, storage],
   );
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

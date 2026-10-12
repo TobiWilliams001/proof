@@ -1,9 +1,12 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { sessionFor } from './format';
+import { mergeJournals } from './merge';
 import type { Entry, JournalData, Trade } from './types';
 
 /**
- * Persistence boundary. Async on purpose: the Supabase provider (auth + RLS)
- * replaces the local one here without touching any component.
+ * Persistence boundary. The signed-in app saves to the trader's account
+ * (cloudProvider); the device-only provider is kept for journals written
+ * before sign-in, which move into the account on first sign-in.
  */
 export interface StorageProvider {
   load(): Promise<JournalData>;
@@ -99,4 +102,115 @@ export const localProvider: StorageProvider = {
   },
 };
 
-export const storage: StorageProvider = localProvider;
+/** True when the device holds a journal written before signing in. */
+function hasDeviceJournal(d: JournalData) {
+  return d.trades.length > 0 || d.entries.length > 0 || d.playbook.setups.length > 0;
+}
+
+export interface CloudProvider extends StorageProvider {
+  /** The saved journal, only if another device changed it since we last looked. */
+  refresh(): Promise<JournalData | null>;
+}
+
+/**
+ * The trader's journal in their account. A copy is kept on the device so the
+ * app opens offline; the account copy wins whenever it can be reached.
+ */
+/** Fired when a save had to join this device's changes with another device's. */
+export const MERGED_EVENT = 'proof:journal-merged';
+
+export function cloudProvider(userId: string, sb: SupabaseClient): CloudProvider {
+  const cacheKey = `${KEY}:${userId}`;
+  let lastSeen: string | null = null;
+
+  const cache = (d: JournalData) => {
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(d));
+    } catch {}
+  };
+  const cached = (): JournalData | null => {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      return raw ? { ...emptyJournal(), ...JSON.parse(raw) } : null;
+    } catch {
+      return null;
+    }
+  };
+  const fetchRow = async () => {
+    const { data, error } = await sb.from('journals').select('data, updated_at').eq('user_id', userId).maybeSingle();
+    if (error) throw error;
+    return data as { data: JournalData; updated_at: string } | null;
+  };
+  const write = async (d: JournalData) => {
+    const { data, error } = await sb
+      .from('journals')
+      .upsert({ user_id: userId, data: d, updated_at: new Date().toISOString() })
+      .select('updated_at')
+      .single();
+    if (error) throw error;
+    lastSeen = data.updated_at;
+  };
+
+  return {
+    async load() {
+      try {
+        const row = await fetchRow();
+        if (row) {
+          lastSeen = row.updated_at;
+          const d = { ...emptyJournal(), ...row.data };
+          cache(d);
+          return d;
+        }
+        // First sign-in: bring along anything written on this device before the account existed.
+        const device = await localProvider.load();
+        if (hasDeviceJournal(device)) {
+          await write(device);
+          cache(device);
+          await localProvider.clear();
+          return device;
+        }
+        return emptyJournal();
+      } catch {
+        // Offline or the service is down: open what this device last saw.
+        return cached() ?? emptyJournal();
+      }
+    },
+    async save(d) {
+      cache(d);
+      try {
+        const row = await fetchRow();
+        if (row && lastSeen && row.updated_at > lastSeen) {
+          // Another device saved since we loaded: keep both sets of changes.
+          const merged = mergeJournals(d, { ...emptyJournal(), ...row.data });
+          await write(merged);
+          cache(merged);
+          window.dispatchEvent(new CustomEvent<JournalData>(MERGED_EVENT, { detail: merged }));
+          return true;
+        }
+        await write(d);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    async refresh() {
+      try {
+        const row = await fetchRow();
+        if (!row || (lastSeen && row.updated_at <= lastSeen)) return null;
+        lastSeen = row.updated_at;
+        const d = { ...emptyJournal(), ...row.data };
+        cache(d);
+        return d;
+      } catch {
+        return null;
+      }
+    },
+    async clear() {
+      try {
+        localStorage.removeItem(cacheKey);
+      } catch {}
+      await sb.from('journals').delete().eq('user_id', userId);
+      lastSeen = null;
+    },
+  };
+}
