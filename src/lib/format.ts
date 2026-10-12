@@ -1,12 +1,11 @@
-const money = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 0,
-});
 const whole = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-// Cents only matter on small amounts; $184.59 reads slower than $185.
-const cash = (n: number) => (Math.abs(n) >= 100 ? whole : money).format(n);
+const centsFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Cents only matter on small amounts ($184.59 reads slower than $185), and when
+// shown they're always two digits: $12.40, never $12.4.
+const cash = (n: number) => {
+  const v = Math.round(n * 100) / 100;
+  return Math.abs(v) >= 100 || Number.isInteger(v) ? whole.format(v) : centsFmt.format(v);
+};
 
 export const fmt = {
   money: (n: number) => cash(n),
