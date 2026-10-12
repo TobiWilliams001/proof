@@ -11,7 +11,7 @@ const STEPS = [
   {
     icon: Plug,
     title: 'Connect once.',
-    body: 'Link your account once. Every trade, past and future, comes in on its own. You never type an entry, stop or result again.',
+    body: 'Link your MetaTrader account once. Your trades, past and future, come in on their own, so there’s no typing entries, stops or results.',
   },
   {
     icon: Mic,
@@ -237,8 +237,8 @@ export default function Landing() {
       <section className={s.works}>
         <div className={s.wrap}>
           <p className={s.kicker}>Works with</p>
-          <p className={s.platforms}>MetaTrader 4 · MetaTrader 5 · cTrader · Bybit · Binance</p>
-          <p className="faint" style={{ fontSize: 14, marginTop: 8 }}>More platforms based on what traders ask for.</p>
+          <p className={s.platforms}>MetaTrader 4 · MetaTrader 5</p>
+          <p className="faint" style={{ fontSize: 14, marginTop: 8 }}>cTrader, Bybit and Binance are next, in the order traders ask for them.</p>
         </div>
       </section>
 
