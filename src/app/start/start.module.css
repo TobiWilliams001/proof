@@ -63,3 +63,20 @@
   text-underline-offset: 2px;
 }
 .link:disabled { color: var(--ink-3); text-decoration: none; }
+.labelRow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.labelRow .link { font-size: 13px; }
+.passwordWrap { position: relative; display: block; }
+.passwordWrap :global(.input) { width: 100%; padding-right: 48px; }
+.eye {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  border-radius: 10px;
+}
+.eye:hover { color: var(--ink); }

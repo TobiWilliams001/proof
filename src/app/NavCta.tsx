@@ -10,7 +10,7 @@ export function NavCta({ className }: { className: string }) {
     <Link href="/journal" className={className}>Open Proof</Link>
   ) : (
     <>
-      <Link href="/start" className={className} data-variant="quiet">Sign in</Link>
+      <Link href="/start?mode=signin" className={className} data-variant="quiet">Sign in</Link>
       <Link href="/start" className={className}>Get started</Link>
     </>
   );

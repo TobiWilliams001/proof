@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,7 +11,9 @@ import { supabase, supabaseConfigured } from '@/lib/supabase/client';
 import s from './start.module.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const RESEND_AFTER = 60;
+const MIN_PASSWORD = 8;
+
+type Mode = 'signup' | 'signin' | 'forgot' | 'check';
 
 /** Where to go after signing in: back to the page that sent them here, or the journal. */
 function nextPath() {
@@ -20,84 +22,101 @@ function nextPath() {
 }
 
 /** Plain words for what went wrong. Never the service's own message. */
-function problemFor(err: { status?: number; code?: string; message?: string } | null, step: 'email' | 'code') {
+function problemFor(err: { status?: number; code?: string } | null, mode: Mode): string | null {
   if (!err) return null;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'You seem to be offline. Check your connection and try again.';
   if (err.status === 429 || err.code?.includes('rate_limit')) return 'Too many tries in a short time. Wait a minute, then try again.';
-  if (step === 'code') return 'That code didn’t work or has expired. Check it, or send a new one.';
-  return 'We couldn’t send the code. Check your email address and try again.';
+  if (err.code === 'user_already_exists' || err.code === 'email_exists') return 'There’s already an account with this email. Sign in instead.';
+  if (err.code === 'weak_password') return `Choose a longer password, at least ${MIN_PASSWORD} characters.`;
+  if (err.code === 'email_not_confirmed') return 'Confirm your email first. Open the link we sent you, then sign in.';
+  if (err.code === 'invalid_credentials' || mode === 'signin') return 'That email or password isn’t right.';
+  return 'Something went wrong. Try again in a moment.';
 }
 
 /**
- * Sign up and sign in are one flow: email, then the link in the email. The
- * email can also carry a code (custom email templates), which keeps the trader
- * inside the installed app on iPhone, so a code box sits behind a small option.
+ * Create an account or sign in with email and password. Everything happens
+ * inside the app, which matters on iPhone, where links open Safari instead.
  */
 export function StartFlow() {
   const { ready, session } = useAuth();
   const router = useRouter();
-  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [mode, setMode] = useState<Mode>('signup');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [wait, setWait] = useState(0);
-  const [useCode, setUseCode] = useState(false);
-
-  // An old or already-used link lands back here; say so plainly.
-  useEffect(() => {
-    // Reading the URL once after mount; it isn't available during prerender.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (new URLSearchParams(window.location.search).get('link') === 'expired') setProblem('That sign-in link has expired or was already used. Send yourself a new one.');
-  }, []);
+  const [checkText, setCheckText] = useState('');
 
   useEffect(() => {
     if (ready && session) router.replace(nextPath());
   }, [ready, session, router]);
 
+  // Arriving from "Sign in" on the landing page, or from an old link.
   useEffect(() => {
-    if (wait <= 0) return;
-    const t = setTimeout(() => setWait(wait - 1), 1000);
-    return () => clearTimeout(t);
-  }, [wait]);
+    const q = new URLSearchParams(window.location.search);
+    // Reading the URL once after mount; it isn't available during prerender.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (q.get('mode') === 'signin') setMode('signin');
+    if (q.get('link') === 'expired') {
+      setMode('signin');
+      setProblem('That link has expired or was already used. Sign in, or ask for a new one.');
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
 
-  async function send() {
+  const go = (m: Mode) => {
+    setMode(m);
+    setProblem(null);
+  };
+
+  async function submit() {
     const address = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(address)) {
-      setProblem('That doesn’t look like an email address.');
-      return;
+    if (!EMAIL_RE.test(address)) return setProblem('That doesn’t look like an email address.');
+    if (mode !== 'forgot' && password.length < (mode === 'signup' ? MIN_PASSWORD : 1)) {
+      return setProblem(mode === 'signup' ? `Use at least ${MIN_PASSWORD} characters for your password.` : 'Enter your password.');
     }
     setBusy(true);
     setProblem(null);
-    const { error } = await supabase().auth.signInWithOtp({
-      email: address,
-      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}${nextPath()}` },
-    });
-    setBusy(false);
-    if (error) {
-      setProblem(problemFor(error, 'email'));
-      return;
-    }
-    setEmail(address);
-    setCode('');
-    setUseCode(false);
-    setStep('code');
-    setWait(RESEND_AFTER);
-  }
+    const sb = supabase();
 
-  async function verify(token: string) {
-    setBusy(true);
-    setProblem(null);
-    const { error } = await supabase().auth.verifyOtp({ email, token, type: 'email' });
-    if (error) {
+    if (mode === 'signup') {
+      const { data, error } = await sb.auth.signUp({
+        email: address,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/journal` },
+      });
       setBusy(false);
-      setProblem(problemFor(error, 'code'));
+      if (error) return setProblem(problemFor(error, mode));
+      // With email confirmation on, an existing address comes back with no identities.
+      if (data.user && data.user.identities?.length === 0) return setProblem(problemFor({ code: 'user_already_exists' }, mode));
+      if (!data.session) {
+        setCheckText(`We sent a link to ${address}. Open it to confirm your email, then sign in here.`);
+        return go('check');
+      }
+      return; // Signed in; the session listener sends them on.
+    }
+
+    if (mode === 'signin') {
+      const { error } = await sb.auth.signInWithPassword({ email: address, password });
+      if (error) {
+        setBusy(false);
+        return setProblem(problemFor(error, mode));
+      }
       return;
     }
-    // The session listener sends them on; keep the button busy until then.
+
+    // Forgot password: the email link opens the page to choose a new one.
+    const { error } = await sb.auth.resetPasswordForEmail(address, { redirectTo: `${window.location.origin}/reset-password` });
+    setBusy(false);
+    if (error) return setProblem(problemFor(error, mode));
+    setCheckText(`If there’s an account for ${address}, we’ve sent a link to choose a new password.`);
+    go('check');
   }
 
-  const digits = code.replace(/\D/g, '');
+  const title = { signup: 'Create your account', signin: 'Welcome back', forgot: 'Reset your password', check: 'Check your email' }[mode];
+  const cta = { signup: 'Create account', signin: 'Sign in', forgot: 'Send reset link', check: '' }[mode];
+  const busyText = { signup: 'Creating your account…', signin: 'Signing in…', forgot: 'Sending…', check: '' }[mode];
 
   return (
     <div className={s.page}>
@@ -107,105 +126,89 @@ export function StartFlow() {
 
       <main className={s.main}>
         <AnimatePresence mode="wait" initial={false}>
-          {step === 'email' ? (
-            <motion.form
-              key="email"
-              className={s.card}
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 }}
-              transition={{ duration: 0.22 }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!busy) send();
-              }}
-            >
-              <h1 className={s.title}>Get started</h1>
-              <p className={s.sub}>Enter your email and we’ll send you a sign-in link. No password to remember.</p>
+          <motion.form
+            key={mode === 'signup' || mode === 'signin' ? 'auth' : mode}
+            className={s.card}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!busy) submit();
+            }}
+          >
+            {(mode === 'forgot' || mode === 'check') && (
+              <button type="button" className={`btn btn-ghost btn-sm ${s.back}`} onClick={() => go('signin')}>
+                <ArrowLeft size={15} /> Back to sign in
+              </button>
+            )}
+
+            {(mode === 'signup' || mode === 'signin') && (
+              <div className="seg" role="tablist" aria-label="Account" style={{ display: 'flex' }}>
+                <button type="button" role="tab" aria-selected={mode === 'signup'} onClick={() => go('signup')} style={{ flex: 1 }}>Create account</button>
+                <button type="button" role="tab" aria-selected={mode === 'signin'} onClick={() => go('signin')} style={{ flex: 1 }}>Sign in</button>
+              </div>
+            )}
+
+            <h1 className={s.title}>{title}</h1>
+            {mode === 'signup' && <p className={s.sub}>Free during early access. Your journal is saved to your account, on every device.</p>}
+            {mode === 'forgot' && <p className={s.sub}>Enter your email and we’ll send you a link to choose a new password.</p>}
+            {mode === 'check' && <p className={s.sub}>{checkText}</p>}
+
+            {mode !== 'check' && (
               <label className="field">
                 <span className="label">Email</span>
                 <input
                   className="input"
                   type="email"
                   inputMode="email"
-                  autoComplete="email"
+                  autoComplete={mode === 'signup' ? 'email' : 'username'}
                   autoCapitalize="off"
-                  enterKeyHint="send"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoFocus
-                  required
                 />
               </label>
-              {problem && <p className={s.problem} role="alert">{problem}</p>}
+            )}
+
+            {(mode === 'signup' || mode === 'signin') && (
+              <div className="field">
+                <span className={s.labelRow}>
+                  <label className="label" htmlFor="password">Password</label>
+                  {mode === 'signin' && (
+                    <button type="button" className={s.link} onClick={() => go('forgot')}>Forgot password?</button>
+                  )}
+                </span>
+                <span className={s.passwordWrap}>
+                  <input
+                    id="password"
+                    className="input"
+                    type={show ? 'text' : 'password'}
+                    autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                    minLength={mode === 'signup' ? MIN_PASSWORD : undefined}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button type="button" className={s.eye} onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'}>
+                    {show ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </span>
+                {mode === 'signup' && <span className="faint" style={{ fontSize: 12.5 }}>At least {MIN_PASSWORD} characters.</span>}
+              </div>
+            )}
+
+            {problem && <p className={s.problem} role="alert">{problem}</p>}
+
+            {mode !== 'check' && (
               <button className="btn btn-primary btn-lg btn-block" disabled={busy || !supabaseConfigured}>
-                {busy ? 'Sending…' : 'Send sign-in link'}
+                {busy ? busyText : cta}
               </button>
-              {!supabaseConfigured && <p className={s.note}>Sign-up isn’t open yet.</p>}
-              <p className={s.note}>New or returning, it’s the same step. Free during early access.</p>
-            </motion.form>
-          ) : (
-            <motion.form
-              key="code"
-              className={s.card}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 16 }}
-              transition={{ duration: 0.22 }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!busy && digits.length >= 6) verify(digits);
-              }}
-            >
-              <button type="button" className={`btn btn-ghost btn-sm ${s.back}`} onClick={() => { setStep('email'); setProblem(null); }}>
-                <ArrowLeft size={15} /> Change email
-              </button>
-              <h1 className={s.title}>Check your email</h1>
-              <p className={s.sub}>
-                We sent a sign-in link to <strong>{email}</strong>. Tap <strong>Sign in</strong> in the email and you’re in. It can take a minute to arrive.
-              </p>
-              {!useCode && (
-                <button type="button" className={s.link} style={{ alignSelf: 'flex-start' }} onClick={() => setUseCode(true)}>
-                  Got a code instead?
-                </button>
-              )}
-              {useCode && (
-              <>
-              <label className="field">
-                <span className="label">Code</span>
-                <input
-                  className={`input num ${s.code}`}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  enterKeyHint="go"
-                  maxLength={8}
-                  placeholder="123456"
-                  value={code}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 8);
-                    setCode(v);
-                  }}
-                  autoFocus
-                  required
-                />
-              </label>
-              {problem && <p className={s.problem} role="alert">{problem}</p>}
-              <button className="btn btn-primary btn-lg btn-block" disabled={busy || digits.length < 6}>
-                {busy ? 'Signing in…' : 'Continue'}
-              </button>
-              </>
-              )}
-              {!useCode && problem && <p className={s.problem} role="alert">{problem}</p>}
-              <p className={s.note}>
-                No email? Check spam, or{' '}
-                <button type="button" className={s.link} disabled={wait > 0 || busy} onClick={send}>
-                  {wait > 0 ? `send a new link in ${wait}s` : 'send a new link'}
-                </button>
-                .
-              </p>
-            </motion.form>
-          )}
+            )}
+            {!supabaseConfigured && <p className={s.note}>Sign-up isn’t open yet.</p>}
+          </motion.form>
         </AnimatePresence>
       </main>
     </div>
