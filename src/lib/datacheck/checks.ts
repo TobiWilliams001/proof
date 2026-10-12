@@ -170,11 +170,15 @@ export function findHealth(data: Pick<JournalData, 'trades' | 'entries' | 'playb
   return issues;
 }
 
-/** Everything, numbers first: a wrong total matters more than a missing note. */
+/**
+ * Everything, numbers first: a wrong total matters more than a missing note.
+ * Then what the trader can act on now (a plan, a note), and last the
+ * information-only items.
+ */
 export function checkJournal(data: Pick<JournalData, 'trades' | 'entries' | 'playbook' | 'accounts'>, now: Date): Issue[] {
   const accounts = data.accounts ?? [];
   const gaps = accounts.length ? accounts.flatMap((a) => findGaps(data.trades, a.localId)) : findGaps(data.trades);
-  return [...findDuplicates(data), ...gaps, ...findMissingStops(data.trades), ...findHealth(data, now)];
+  return [...findDuplicates(data), ...gaps, ...findHealth(data, now), ...findMissingStops(data.trades)];
 }
 
 /**
