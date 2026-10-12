@@ -122,6 +122,8 @@ export interface TraderProfile {
 
 export interface JournalData {
   version: 2;
+  /** Show results as money (default), R, or both. */
+  units?: 'money' | 'r' | 'both';
   accounts?: SyncAccount[];
   profile?: TraderProfile;
   trades: Trade[];

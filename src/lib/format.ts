@@ -4,10 +4,13 @@ const money = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
   minimumFractionDigits: 0,
 });
+const whole = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+// Cents only matter on small amounts; $184.59 reads slower than $185.
+const cash = (n: number) => (Math.abs(n) >= 100 ? whole : money).format(n);
 
 export const fmt = {
-  money: (n: number) => money.format(n),
-  pnl: (n: number) => `${n >= 0 ? '+' : '−'}${money.format(Math.abs(n))}`,
+  money: (n: number) => cash(n),
+  pnl: (n: number) => `${n >= 0 ? '+' : '−'}${cash(Math.abs(n))}`,
   r: (r: number | null | undefined) =>
     r == null || Number.isNaN(r) ? 'No R' : `${r > 0 ? '+' : r < 0 ? '−' : ''}${Math.abs(r).toFixed(1)}R`,
   pct: (n: number) => `${Math.round(n * 100)}%`,

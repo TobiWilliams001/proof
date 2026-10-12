@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { buildDemo } from './demo';
-import { rFromPrices } from './stats';
+import { rFromPrices, type Stats } from './stats';
+import { resultValue, showResult, type Units } from './units';
 import { linkEarlyNotes } from './link';
 import { uid } from './id';
 import { emptyJournal, storage } from './storage';
@@ -23,6 +24,7 @@ interface JournalApi {
   closeTrade(id: string, close: { exit: number; pnl: number; closedAt: string }): void;
   setPlaybook(p: Playbook): void;
   setProfile(p: TraderProfile): void;
+  setUnits(u: Units): void;
   logQuestion(q: Omit<QuestionLog, 'id' | 'askedAt'>): void;
   setImprovement(weekStart: string, improvement: string): void;
   addAccount(a: SyncAccount): void;
@@ -127,6 +129,9 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
           entries: d.entries.map((e) => (e.tradeId === id ? { ...e, tradeId: undefined } : e)),
         }));
       },
+      setUnits(units) {
+        update((d) => ({ ...d, units }));
+      },
       setProfile(profile) {
         update((d) => ({ ...d, profile }));
       },
@@ -201,4 +206,25 @@ export function useJournal(): JournalApi {
   const v = useContext(Ctx);
   if (!v) throw new Error('useJournal must be used inside <JournalProvider>');
   return v;
+}
+
+/** The trader's chosen units and a formatter for results in them. */
+export function useUnits() {
+  const { data } = useJournal();
+  const units: Units = data.units ?? 'money';
+  return {
+    units,
+    show: (r: number | null | undefined, money: number | null | undefined) => showResult(units, r, money),
+    value: (r: number | null | undefined, money: number | null | undefined) => resultValue(units, r, money),
+    /** For big numbers: the headline figure, with R as a small second line in Both mode. */
+    split: (r: number | null | undefined, money: number | null | undefined) =>
+      units === 'both'
+        ? { main: showResult('money', r, money), sub: r != null && money != null ? showResult('r', r, null) : null }
+        : { main: showResult(units, r, money), sub: null },
+    /** A group's total, in the trader's units. */
+    total: (st: Stats) => showResult(units, st.rCount ? st.totalR : null, st.pnl),
+    totalValue: (st: Stats) => resultValue(units, st.rCount ? st.totalR : null, st.pnl),
+    /** A group's average per trade, in the trader's units. */
+    avg: (st: Stats) => showResult(units, st.avgR, st.count ? st.pnl / st.count : null),
+  };
 }
