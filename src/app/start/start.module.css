@@ -141,7 +141,8 @@
 .passwordWrap { position: relative; display: block; }
 .passwordWrap :global(.input) { width: 100%; padding-right: 48px; }
 
-.google {
+.socials { display: flex; flex-direction: column; gap: 10px; }
+.social {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +156,10 @@
   font-weight: 600;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
-.google:hover { border-color: var(--ink-3); }
-.google:disabled { opacity: 0.6; }
+.social:hover { border-color: var(--ink-3); }
+.social:disabled { opacity: 0.6; }
+/* Apple asks for a solid black button (white in dark mode). */
+.apple { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.apple:hover { opacity: 0.9; border-color: var(--ink); }
 .or { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 13px; }
 .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line-2); }
