@@ -21,20 +21,28 @@ npm run build
 
 | Variable | Needed for | Without it |
 |---|---|---|
-| `GEMINI_API_KEY` | AI refinement of note structuring; plain-language playbook import | Local structuring still works; playbook is edited by hand |
-| `GEMINI_MODEL` | Override the default model (`gemini-3.8-flash`) |, |
+| `NEXT_PUBLIC_SUPABASE_URL` | Sign-up, sign-in and saving journals to accounts | The app can't be opened; Get started says sign-up isn't open |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Same (the `sb_publishable_…` key; safe in the browser) | Same |
+| `SUPABASE_URL` | Server check that API calls come from a signed-in trader (falls back to the public URL) | Uses `NEXT_PUBLIC_SUPABASE_URL` |
+| `ANTHROPIC_API_KEY` | AI refinement of note structuring; plain-language playbook import | Local structuring still works; playbook is edited by hand |
+| `ANTHROPIC_MODEL` | Override the default model (`claude-haiku-5-5`) | |
 | `METAAPI_TOKEN` | Automatic MetaTrader 4/5 import (MetaApi API token) | Settings says automatic import isn't switched on |
 | `SYNC_SECRET` | Locks each connected account reference so only Proof's server can use it (32+ random characters) | Automatic import stays off |
-| `SYNC_MAX_ACCOUNTS` | Cap on connected accounts while there's no sign-in (default 3); each one costs money at MetaApi | Defaults to 3 |
-| `ONBOARDING_WEBHOOK_URL` | Where welcome answers go (a sheet or form service), so you can see who your traders are. Only the answers, no trades or notes | Answers stay on the device |
-| `WAITLIST_WEBHOOK_URL` | Landing-page waitlist (forwards `{ email }` as JSON) | Form says the waitlist isn't open yet |
+| `SYNC_MAX_ACCOUNTS` | Cap on connected MetaApi accounts (default 3); each one costs money at MetaApi | Defaults to 3 |
+
+### Supabase setup (once)
+
+1. SQL editor: run `supabase/migrations/0001_accounts.sql` (journals and profiles tables, row level security).
+2. Authentication → Emails: in both **Confirm signup** and **Magic link** templates, include the code: `{{ .Token }}`.
+3. Authentication → URL Configuration: set the Site URL to your Vercel URL and add it (and `http://localhost:3000/**`) to Redirect URLs.
+4. The built-in email sender allows only a few emails an hour. Before real testers, add custom SMTP (for example Resend) under Authentication → SMTP.
 
 ## How it's built
 
 | Area | Where | Notes |
 |---|---|---|
 | Data model | `src/lib/types.ts` | Mirrors brief §7 (trades, entries, playbook, questions, reviews) |
-| Storage | `src/lib/storage.ts` | Async `StorageProvider`; localStorage today, Supabase + RLS next. Migrates old Edgelog data |
+| Storage | `src/lib/storage.ts` | Journal saved to the trader's Supabase account (one JSON document, RLS), cached on the device for offline; journals written before sign-in move in on first sign-in |
 | Journal box | `src/components/Composer.tsx` | Type or dictate, structure-or-keep toggle, confirm card, at most one clarifying question |
 | Structuring | `src/lib/structure.ts` | Deterministic, offline, only ever maps to the trader's own playbook; LLM output is constrained the same way |
 | Ask your journal | `src/lib/ask.ts`, `src/lib/tools.ts` | Question → typed tools (`get_stats`, `group_stats`, `list_trades`, `search_notes`) → answer built only from tool output, with citations |
@@ -45,4 +53,4 @@ npm run build
 
 ## Not built yet (from the brief)
 
-Sign-in and a database (Supabase), cTrader, Bybit and Binance import, and the EA push path for MetaTrader.
+cTrader, Bybit and Binance import, and the EA push path for MetaTrader.
