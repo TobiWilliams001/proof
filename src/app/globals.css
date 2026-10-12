@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────────
    Proof, design tokens
-   Calm, paper-and-ink notebook. One accent. Numbers in mono.
+   Calm, paper-and-ink notebook. One accent: amber gold, warm and clear of profit/loss colours. Numbers in mono.
    Mobile-first: base styles target phones, min-width queries scale up.
    ───────────────────────────────────────────────────────────── */
 
@@ -17,10 +17,10 @@
   --line: rgba(23, 24, 26, 0.08);
   --line-2: rgba(23, 24, 26, 0.14);
 
-  --accent: #5146e5;
+  --accent: #b45309;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(81, 70, 229, 0.09);
-  --accent-line: rgba(81, 70, 229, 0.28);
+  --accent-soft: rgba(180, 83, 9, 0.09);
+  --accent-line: rgba(180, 83, 9, 0.28);
 
   --pos: #00826f;
   --pos-soft: rgba(0, 130, 111, 0.1);
@@ -32,8 +32,8 @@
   --warn: #86590f;
   --warn-soft: rgba(168, 112, 26, 0.1);
 
-  --k-trade: #5146e5;
-  --k-missed: #86590f;
+  --k-trade: #b45309;
+  --k-missed: #2f5f9e;
   --k-rule: #b33c1a;
   --k-plan: #17677a;
   --k-reflect: #7a5bb5;
@@ -82,10 +82,10 @@
     --ink-3: #868992;
     --line: rgba(255, 255, 255, 0.07);
     --line-2: rgba(255, 255, 255, 0.13);
-    --accent: #8f88ff;
+    --accent: #e8a33d;
     --accent-ink: #0c0d0f;
-    --accent-soft: rgba(143, 136, 255, 0.12);
-    --accent-line: rgba(143, 136, 255, 0.35);
+    --accent-soft: rgba(232, 163, 61, 0.12);
+    --accent-line: rgba(232, 163, 61, 0.35);
     --pos: #1f9e8f;
     --pos-soft: rgba(31, 158, 143, 0.12);
     --neg: #e5583c;
@@ -94,8 +94,8 @@
     --neg-text: #e5583c;
     --warn: #e2a64a;
     --warn-soft: rgba(226, 166, 74, 0.12);
-    --k-trade: #8f88ff;
-    --k-missed: #e2a64a;
+    --k-trade: #e8a33d;
+    --k-missed: #7fa8e0;
     --k-rule: #e5583c;
     --k-plan: #5cc4d6;
     --k-reflect: #b89cf0;
@@ -119,10 +119,10 @@
   --ink-3: #868992;
   --line: rgba(255, 255, 255, 0.07);
   --line-2: rgba(255, 255, 255, 0.13);
-  --accent: #8f88ff;
+  --accent: #e8a33d;
   --accent-ink: #0c0d0f;
-  --accent-soft: rgba(143, 136, 255, 0.12);
-  --accent-line: rgba(143, 136, 255, 0.35);
+  --accent-soft: rgba(232, 163, 61, 0.12);
+  --accent-line: rgba(232, 163, 61, 0.35);
   --pos: #1f9e8f;
   --pos-soft: rgba(31, 158, 143, 0.12);
   --neg: #e5583c;
@@ -131,8 +131,8 @@
   --neg-text: #e5583c;
   --warn: #e2a64a;
   --warn-soft: rgba(226, 166, 74, 0.12);
-  --k-trade: #8f88ff;
-  --k-missed: #e2a64a;
+  --k-trade: #e8a33d;
+  --k-missed: #7fa8e0;
   --k-rule: #e5583c;
   --k-plan: #5cc4d6;
   --k-reflect: #b89cf0;
