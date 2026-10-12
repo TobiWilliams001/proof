@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Composer } from '@/components/Composer';
 import { EntryItem } from '@/components/Items';
+import { RuleCards } from '@/components/RuleCards';
 import { Sheet } from '@/components/Sheet';
 import { listItem, stagger } from '@/components/motion';
 import { addDays, startOfDay, startOfWeek, ymd } from '@/lib/dates';
@@ -116,6 +117,8 @@ export default function JournalPage() {
           <Glance label="Notes today" value={String(glance.notesToday)} sub={awaiting.length ? `${awaiting.length} trade${awaiting.length === 1 ? '' : 's'} waiting` : 'all caught up'} />
         </motion.div>
       )}
+
+      <RuleCards />
 
       {awaiting.length > 0 && (
         <section className={`${s.prompts}`} aria-label="Trades waiting for a note" data-tour="prompts">

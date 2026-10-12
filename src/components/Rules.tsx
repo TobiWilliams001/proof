@@ -1,6 +1,6 @@
 'use client';
 
-import { Minus, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { Bell, Minus, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { understandRule } from '@/lib/ai-client';
 import { describeRule, TEMPLATES, todayLine } from '@/lib/rules/describe';
@@ -80,6 +80,8 @@ export function Rules() {
         </div>
       )}
 
+      {rules.some((r) => r.active) && <NotifyOptIn />}
+
       <Sheet open={choosing} onClose={() => setChoosing(false)} title="Add a rule">
         <Templates onPick={(body) => setEditing({ body })} compact />
         <OwnWords onUnderstood={(body) => setEditing({ body })} />
@@ -105,6 +107,20 @@ export function Rules() {
         )}
       </Sheet>
     </section>
+  );
+}
+
+/** Notifications are optional and asked for only here, never on first open. */
+function NotifyOptIn() {
+  const [perm, setPerm] = useState(() => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission));
+  if (perm !== 'default') return null;
+  return (
+    <button
+      className={`btn btn-ghost btn-sm ${s.notify}`}
+      onClick={async () => setPerm(await Notification.requestPermission())}
+    >
+      <Bell size={14} /> Also tell me with a notification
+    </button>
   );
 }
 

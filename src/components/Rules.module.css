@@ -47,3 +47,4 @@
 .field { display: flex; flex-direction: column; gap: 8px; }
 .stepper { display: flex; align-items: center; gap: 14px; }
 .stepValue { min-width: 2ch; text-align: center; font-size: 22px; font-weight: 600; }
+.notify { margin-top: 10px; margin-left: -8px; color: var(--ink-2); }
