@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/supabase/server';
 import { AIUnavailableError, getProvider } from '@/lib/ai/provider';
 import { constrainToPlaybook } from '@/lib/structure';
 import type { EntryKind, Playbook, Structured, Trade } from '@/lib/types';
@@ -38,6 +39,8 @@ Return JSON: {"setups":[{"name":string,"description":string,"aliases":[string]}]
 }
 
 export async function POST(req: NextRequest) {
+  const who = await requireUser(req);
+  if ('response' in who) return who.response;
   let body: Body;
   try {
     body = await req.json();

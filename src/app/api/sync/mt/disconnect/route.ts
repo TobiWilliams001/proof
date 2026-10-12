@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/supabase/server';
 import { removeAccount, SyncError } from '@/lib/sync/metaapi';
 import { syncConfigured, unseal } from '@/lib/sync/seal';
 
 export async function POST(req: NextRequest) {
+  const who = await requireUser(req);
+  if ('response' in who) return who.response;
   if (!syncConfigured()) return NextResponse.json({ ok: false, problem: 'not_configured' }, { status: 503 });
   const b = (await req.json().catch(() => null)) as { sealed?: string } | null;
   const acc = b?.sealed ? unseal<{ id: string }>(b.sealed) : null;

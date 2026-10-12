@@ -1,4 +1,5 @@
 import { structureNote, type StructureResult } from './structure';
+import { authedFetch } from './supabase/client';
 import type { EntryKind, Playbook, Structured, Trade } from './types';
 
 /**
@@ -13,7 +14,7 @@ export async function refineWithAI(
   timeoutMs = 5000,
 ): Promise<StructureResult> {
   try {
-    const res = await fetch('/api/structure', {
+    const res = await authedFetch('/api/structure', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -47,7 +48,7 @@ export async function refineWithAI(
 
 export async function importPlaybook(text: string): Promise<Playbook | { error: string }> {
   try {
-    const res = await fetch('/api/structure', {
+    const res = await authedFetch('/api/structure', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task: 'playbook', text }),

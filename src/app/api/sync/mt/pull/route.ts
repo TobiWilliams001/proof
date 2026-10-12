@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/supabase/server';
 import { dealsByPosition, dealsByTime, deploy, positions, readAccount, SyncError } from '@/lib/sync/metaapi';
 import { dealsToTrades, positionsToOpenTrades } from '@/lib/sync/mt-map';
 import { syncConfigured, unseal } from '@/lib/sync/seal';
@@ -18,6 +19,8 @@ const BACKFILL_DAYS = 90;
 const OVERLAP_MS = 7 * 24 * 3600_000;
 
 export async function POST(req: NextRequest) {
+  const who = await requireUser(req);
+  if ('response' in who) return who.response;
   if (!syncConfigured()) return NextResponse.json({ state: 'error', problem: 'not_configured' }, { status: 503 });
   const b = (await req.json().catch(() => null)) as { sealed?: string; since?: string; sightedStops?: Record<string, number> } | null;
   const acc = b?.sealed ? unseal<Sealed>(b.sealed) : null;

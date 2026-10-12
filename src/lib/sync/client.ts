@@ -1,6 +1,7 @@
 'use client';
 
 import type { SyncAccount, Trade } from '../types';
+import { authedFetch } from '../supabase/client';
 
 /** Browser side of MetaTrader sync. The password is sent once, to connect, and never kept. */
 
@@ -10,7 +11,7 @@ export type ConnectResult =
   | { status: 'error'; problem: string; suggestions?: string[] };
 
 async function post<T>(path: string, body: unknown, timeoutMs = 65_000): Promise<T> {
-  const res = await fetch(path, {
+  const res = await authedFetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

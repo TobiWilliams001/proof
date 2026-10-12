@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/supabase/server';
 import { countAccounts, createAccount, deploy, SyncError } from '@/lib/sync/metaapi';
 import { seal, syncConfigured } from '@/lib/sync/seal';
 
@@ -19,6 +20,8 @@ interface Body {
 }
 
 export async function POST(req: NextRequest) {
+  const who = await requireUser(req);
+  if ('response' in who) return who.response;
   if (!syncConfigured()) return NextResponse.json({ problem: 'not_configured' }, { status: 503 });
   const b = (await req.json().catch(() => null)) as Body | null;
   if (
