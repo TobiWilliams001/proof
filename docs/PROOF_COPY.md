@@ -55,7 +55,7 @@ Ask your journal anything, like "Which setup makes me the most?" or "How do I tr
 No forms. No typing numbers. No setting aside an hour on Sunday. A few seconds after a trade, from your phone or your desk, and it's done. When journaling is this easy, you keep doing it. That's where every other benefit starts.
 
 **Find your edge.**
-See which setups, pairs and sessions make you money, in R and in your account currency, so you can do more of what works.
+See which setups, pairs and sessions make you money, so you can do more of what works.
 
 **Spot the leaks.**
 See the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Once you can see them, you can work on them.
@@ -84,7 +84,7 @@ Describe your playbook in plain words, your setups, your rules, what you care ab
 ## DESIRE, The trades you didn't take matter too
 
 Log what forms never capture:
-- **Missed trades:** "Saw it, didn't take it, would've been +4R."
+- **Missed trades:** "Saw it, didn't take it, would've been +$400."
 - **Broken rules:** "Revenge trade after the loss."
 - **Plans:** "Watching gold at 2,340 for a footprint entry."
 - **Your state:** "Slept badly. Cut size."

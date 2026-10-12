@@ -27,7 +27,7 @@ const STEPS = [
 ];
 
 const WINS = [
-  ['Find your edge.', 'See which setups, pairs and sessions make you money, in R and in your account currency, so you can do more of what works.'],
+  ['Find your edge.', 'See which setups, pairs and sessions make you money, so you can do more of what works.'],
   ['Spot the leaks.', 'See the habits quietly costing you: trading after losses, oversizing when confident, entries you take out of boredom. Once you can see them, you can work on them.'],
   ['Trade your plan under pressure.', 'For prop traders, consistency matters most. Proof shows whether you’re actually following your plan, so a bad week doesn’t quietly become a habit.'],
   ['Know where you stand.', 'You open your week already knowing which setup to trust, which to leave alone, and the one small thing worth trying next.'],
@@ -41,7 +41,7 @@ const QUESTIONS = [
 ];
 
 const KINDS = [
-  ['missed', 'Missed trades', '“Saw it, didn’t take it. Would’ve been +4R.”'],
+  ['missed', 'Missed trades', '“Saw it, didn’t take it. Would’ve been +$400.”'],
   ['rule_break', 'Broken rules', '“Revenge trade after the loss.”'],
   ['plan', 'Plans', '“Watching gold at 2,340 for a footprint entry.”'],
   ['reflection', 'Your state', '“Slept badly. Cut size.”'],
@@ -93,7 +93,7 @@ export default function Landing() {
         <div className={s.demo} aria-label="Example of Proof in use">
           <Reveal delay={0.3} y={28} className={s.demoCard}>
             <div className={s.demoPrompt}>
-              <span className={s.pulse} /> <strong>EURUSD long</strong> closed <span className="pos num">+2.4R</span>. What happened?
+              <span className={s.pulse} /> <strong>EURUSD long</strong> closed <span className="pos num">+$240</span>. What happened?
             </div>
             <p className={s.demoNote}>“Clean 3-touch at the value area, entered a bit early, held to target.”</p>
             <div className={s.demoChips}>
@@ -106,7 +106,7 @@ export default function Landing() {
           <Reveal delay={0.45} y={28} className={`${s.demoCard} ${s.demoAsk}`}>
             <div className={s.demoQ}>Which setup makes me the most?</div>
             <p className={s.demoA}>
-              3-touch makes you the most R. Here are the trades behind it, with how sure that is.
+              3-touch makes you the most money. Here are the trades behind it, with how sure that is.
             </p>
             <div className={s.demoFoot}>See the trades ›</div>
           </Reveal>
