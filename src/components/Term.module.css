@@ -1,0 +1,29 @@
+.wrap { position: relative; display: inline; }
+.word {
+  font: inherit;
+  color: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--ink-3);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+@media (pointer: coarse) { .word { position: relative; } .word::after { content: ''; position: absolute; inset: -10px -6px; } }
+.tip {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  left: 0;
+  width: max-content;
+  max-width: min(280px, 80vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: var(--text-sm);
+  font-weight: 450;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  box-shadow: var(--shadow-2);
+}
