@@ -1,7 +1,8 @@
 // Proof service worker, keeps the app opening on weak or no connection (brief §9).
 // Journal data lives in the browser, so caching the shell is enough to write offline.
 
-const VERSION = 'proof-v1';
+// Bump to clear every old copy on the next visit.
+const VERSION = 'proof-v2';
 const SHELL = ['/journal', '/ask', '/review', '/trades', '/playbook', '/settings', '/calculator', '/manifest.webmanifest', '/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -28,15 +29,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
 
-  // Pages: fresh when online, last good copy when not.
-  if (req.mode === 'navigate') {
+  // Pages, and the data Next.js fetches when moving between pages: always fresh when
+  // online, last good copy only when offline. A cached copy here would show an old
+  // version of a page after every release.
+  const isPageData = url.searchParams.has('_rsc') || req.headers.get('RSC') === '1';
+  if (req.mode === 'navigate' || isPageData) {
     event.respondWith(
       fetch(req)
         .then((res) => {
           if (res.ok) caches.open(VERSION).then((c) => c.put(req, res.clone()));
           return res;
         })
-        .catch(() => caches.match(req).then((hit) => hit || caches.match('/journal'))),
+        .catch(() => caches.match(req).then((hit) => hit || (isPageData ? Response.error() : caches.match('/journal')))),
     );
     return;
   }
@@ -56,7 +60,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else (icons, RSC payloads): cached copy now, refresh in the background.
+  // Everything else (icons, images): cached copy now, refresh in the background.
   event.respondWith(
     caches.match(req).then((hit) => {
       const network = fetch(req)
