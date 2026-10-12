@@ -118,3 +118,5 @@
 }
 .saveBanner a { color: var(--warn); font-weight: var(--weight-strong); text-decoration: underline; text-underline-offset: 3px; }
 @media (min-width: 900px) { .saveBanner { margin: 24px 40px 0; } }
+.bannerLink { color: var(--warn); font: inherit; font-weight: var(--weight-strong); text-decoration: underline; text-underline-offset: 3px; margin-left: 4px; }
+.bannerLink:disabled { opacity: 0.6; }

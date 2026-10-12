@@ -12,6 +12,8 @@ import { Logo } from './Logo';
 import { MotionRoot, SPRING } from './motion';
 import { ThemeToggle } from './ThemeSwitch';
 import { Onboarding } from './Onboarding';
+import { DataBanner } from './DataBanner';
+import { useNow } from '@/lib/useNow';
 import { Tour } from './Tour';
 import s from './AppShell.module.css';
 
@@ -32,8 +34,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data, ready, saveFailed } = useJournal();
   useAutoSync();
   useRuleWatcher();
-  // Only problems the trader must fix get a banner; temporary ones retry quietly.
-  const broken = (data.accounts ?? []).find((a) => a.state === 'error' && a.problem && NEEDS_ACTION.has(a.problem));
+  // A failed sync is never hidden: problems the trader must fix show at once; temporary
+  // ones retry quietly for half an hour, then show too.
+  const now = useNow();
+  const broken = (data.accounts ?? []).find(
+    (a) =>
+      a.state === 'error' &&
+      ((a.problem && NEEDS_ACTION.has(a.problem)) || !a.lastSyncedAt || now - Date.parse(a.lastSyncedAt) > 30 * 60_000),
+  );
   const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
   const moreActive = SECONDARY.some((i) => isActive(i.href));
 
@@ -81,10 +89,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className={s.main}>
         {broken && !path.startsWith('/settings') && (
           <div className={s.saveBanner} role="alert">
-            <strong>We can’t bring in trades from {broken.name}.</strong> {SYNC_PROBLEM[broken.problem!]}{' '}
+            <strong>We can’t bring in trades from {broken.name}.</strong> {SYNC_PROBLEM[broken.problem ?? 'unavailable'] ?? SYNC_PROBLEM.unavailable}{' '}
             <Link href="/settings#accounts">Fix it in Settings</Link>
           </div>
         )}
+        {!broken && <DataBanner />}
         {saveFailed && (
           <div className={s.saveBanner} role="alert">
             <strong>Your latest changes aren’t saved to your account yet.</strong>{' '}

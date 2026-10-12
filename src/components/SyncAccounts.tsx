@@ -8,6 +8,7 @@ import { connectMt, disconnectMt, SYNC_PROBLEM } from '@/lib/sync/client';
 import { useNow } from '@/lib/useNow';
 import type { SyncAccount } from '@/lib/types';
 import { Sheet } from './Sheet';
+import { mismatchText, reconcile } from '@/lib/datacheck/reconcile';
 
 /** Connected MetaTrader accounts: their health, and the connect flow. */
 export function SyncAccounts() {
@@ -67,15 +68,25 @@ export function SyncAccounts() {
 }
 
 function Status({ a, now }: { a: SyncAccount; now: number }) {
+  const { data } = useJournal();
   if (a.state === 'error') {
     return <span className="neg" style={{ display: 'block', fontSize: 13, marginTop: 4 }}>{SYNC_PROBLEM[a.problem ?? 'unavailable'] ?? SYNC_PROBLEM.unavailable}</span>;
   }
   if (a.state === 'connecting' || !a.lastSyncedAt) {
     return <span className="faint" style={{ display: 'block', fontSize: 13, marginTop: 4 }}>Connecting to your broker. Your first import can take a few minutes.</span>;
   }
+  // The status says whether Proof's numbers agree with MetaTrader's, not just that it synced.
+  const r = a.platformCheck ? reconcile(data.trades, a.localId, a.platformCheck) : null;
+  if (r && !r.match) {
+    return (
+      <span style={{ display: 'block', fontSize: 13, marginTop: 4, color: 'var(--warn)' }}>
+        Up to date · {mismatchText(r, 'this account').replace(/ from this account| for this account/, '')}
+      </span>
+    );
+  }
   return (
     <span className="pos" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, marginTop: 4 }}>
-      <Check size={13} /> Up to date · {fmt.relative(a.lastSyncedAt, now)}
+      <Check size={13} /> Up to date{r ? ' · matches MetaTrader' : ''} · {fmt.relative(a.lastSyncedAt, now)}
     </span>
   );
 }
