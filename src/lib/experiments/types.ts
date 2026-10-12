@@ -53,6 +53,8 @@ export interface Result {
   /** Share of trades that kept to the change. */
   adherence: number;
   confidence: ExperimentConfidence;
+  /** The trader's call after the report: keep doing it, or drop it. */
+  kept?: boolean;
 }
 
 /** Proof's confidence words, with "not enough evidence yet" for a small experiment. */
