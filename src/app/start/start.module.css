@@ -1,7 +1,10 @@
 /* Sign up and sign in. Phones: one calm column. Larger screens: the form beside a panel
    that shows what Proof does. */
 .page { min-height: 100dvh; display: grid; background: var(--bg); }
-@media (min-width: 960px) { .page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+/* On a laptop the page is framed: the panel sits inside a margin, never against the edge. */
+@media (min-width: 960px) {
+  .page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 24px; max-width: 1480px; margin: 0 auto; }
+}
 
 /* ── Brand panel (larger screens) ── */
 .brand { display: none; }
@@ -10,11 +13,10 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     gap: 40px;
-    padding: 40px 48px;
-    margin: 12px 0 12px 12px;
-    border-radius: 28px;
+    padding: 48px clamp(40px, 5vw, 72px);
+    border-radius: 32px;
+    min-height: calc(100dvh - 48px);
     overflow: hidden;
     background: #121316;
     color: #f2f1ec;
@@ -30,7 +32,7 @@
   background: radial-gradient(closest-side, rgba(232, 163, 61, 0.28), transparent);
   pointer-events: none;
 }
-.brandBody { position: relative; display: flex; flex-direction: column; gap: 32px; max-width: 460px; }
+.brandBody { position: relative; display: flex; flex-direction: column; gap: 36px; max-width: 480px; margin: auto 0; }
 .brandTitle { font-size: clamp(32px, 3.2vw, 44px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 650; }
 .brandTitle em { font-style: normal; color: #e8a33d; }
 .brandCards { display: flex; flex-direction: column; gap: 10px; }
@@ -47,10 +49,11 @@
 .brandCard strong { display: block; font-size: 14.5px; font-weight: 600; }
 .brandCard span span { display: block; margin-top: 2px; font-size: 13px; color: rgba(242, 241, 236, 0.6); }
 .brandIcon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: rgba(232, 163, 61, 0.16); color: #e8a33d; }
-.brandFoot { position: relative; font-size: 13px; color: rgba(242, 241, 236, 0.5); }
 
 /* ── Form side ── */
 .side { display: flex; flex-direction: column; min-height: 100dvh; padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom); }
+/* Inside the framed page the form side fits the same height as the panel, so nothing runs off the bottom. */
+@media (min-width: 960px) { .side { min-height: calc(100dvh - 48px); padding: 0 24px; } }
 .top { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 400px; margin: 0 auto; padding: 16px 0; }
 @media (min-width: 960px) { .logo { visibility: hidden; } }
 .main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 0 24px; }
@@ -135,7 +138,6 @@
 .link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .labelRow .link { font-size: 13px; }
 
-.trust { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px 0 20px; font-size: 12.5px; color: var(--ink-3); text-align: center; }
 
 /* Kept for the reset-password page, which shares these styles. */
 .passwordWrap { position: relative; display: block; }

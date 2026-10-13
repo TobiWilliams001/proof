@@ -281,10 +281,6 @@ export function StartFlow() {
             </motion.form>
           </AnimatePresence>
         </main>
-
-        <footer className={s.trust}>
-          <ShieldCheck size={14} aria-hidden /> Private by default. Proof never places a trade.
-        </footer>
       </div>
     </div>
   );
@@ -321,7 +317,6 @@ function BrandPanel() {
           ))}
         </div>
       </div>
-      <p className={s.brandFoot}>The trading journal you’ll keep.</p>
     </aside>
   );
 }
