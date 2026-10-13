@@ -30,6 +30,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { importPlaybook } from '@/lib/ai-client';
 import { QUESTIONS, type Question } from '@/lib/onboarding/questions';
+import { accountsOf, platformsOf, usesMetaTrader } from '@/lib/onboarding/profile';
 import { suggestRules } from '@/lib/onboarding/suggestRules';
 import { describeRule } from '@/lib/rules/describe';
 import { useRules } from '@/lib/rules/useRules';
@@ -58,9 +59,11 @@ const ICONS: Record<string, LucideIcon> = {
   Personal: UserRound,
   'Prop challenge': Target,
   'Funded prop account': Trophy,
+  Investing: LineChart,
   MT4: Monitor,
   MT5: Monitor,
   cTrader: Zap,
+  TradingView: BarChart3,
   Other: MoreHorizontal,
   Nothing: Circle,
   'A spreadsheet': Table2,
@@ -98,7 +101,7 @@ export function Onboarding() {
   useEffect(() => {
     const show = () => {
       setStep(1);
-      setA(data.profile ? { ...data.profile } : { markets: [] });
+      setA(data.profile ? { ...data.profile, accounts: accountsOf(data.profile), platforms: platformsOf(data.profile) } : { markets: [] });
       setOpen(true);
     };
     window.addEventListener('proof:onboarding', show);
@@ -123,7 +126,7 @@ export function Onboarding() {
 
   /** Saves what was answered, marks the welcome done, and moves on. */
   const finish = async (then?: string) => {
-    const answered = a.markets.length || a.account || a.platform || a.journalNow || a.goal;
+    const answered = a.markets.length || a.accounts?.length || a.platforms?.length || a.journalNow || a.goal;
     if (answered) {
       const profile: TraderProfile = { ...a, answeredAt: new Date().toISOString() };
       setProfile(profile);
@@ -229,7 +232,8 @@ export function Onboarding() {
               <p className={s.why}>{q.multi ? `${q.why} Pick all that apply.` : q.why}</p>
               <div className={s.options} data-multi={q.multi || undefined}>
                 {q.options.map((o) => {
-                  const on = q.multi ? a.markets.includes(o) : a[q.key] === o;
+                  const list = (q.multi ? (a[q.key] as string[] | undefined) : undefined) ?? [];
+                  const on = q.multi ? list.includes(o) : a[q.key] === o;
                   const Icon = ICONS[o] ?? Circle;
                   return (
                     <motion.button
@@ -239,7 +243,7 @@ export function Onboarding() {
                       whileTap={{ scale: 0.98 }}
                       onClick={() =>
                         q.multi
-                          ? setA((x) => ({ ...x, markets: on ? x.markets.filter((m) => m !== o) : [...x.markets, o] }))
+                          ? setA((x) => ({ ...x, [q.key]: on ? list.filter((m) => m !== o) : [...list, o] }))
                           : pick(q.key, o)
                       }
                     >
@@ -324,7 +328,7 @@ export function Onboarding() {
               </motion.span>
               <h1 id="ob-title" className={s.hero}>You’re set.</h1>
               <p className={s.why}>
-                {a.platform === 'MT4' || a.platform === 'MT5'
+                {usesMetaTrader(a)
                   ? 'Connect your MetaTrader account and your trades, past and future, come in on their own.'
                   : 'Add your first trade or note, and Proof starts learning how you trade.'}
               </p>
@@ -344,7 +348,7 @@ export function Onboarding() {
           </button>
         )}
         {q && (q.multi || (q.key === 'journalNow' && a.journalNow === 'Another app')) && (
-          <button className={`btn btn-primary btn-lg btn-block ${s.cta}`} onClick={next} disabled={q.multi && !a.markets.length}>
+          <button className={`btn btn-primary btn-lg btn-block ${s.cta}`} onClick={next} disabled={q.multi && !((a[q.key] as string[] | undefined)?.length)}>
             Continue <ArrowRight size={16} />
           </button>
         )}
@@ -362,16 +366,16 @@ export function Onboarding() {
         )}
         {current === 'done' && (
           <>
-            {(a.platform === 'MT4' || a.platform === 'MT5') && (
+            {(usesMetaTrader(a)) && (
               <button className={`btn btn-primary btn-lg btn-block ${s.cta}`} onClick={() => finish('/settings#accounts')}>
                 <Plug size={16} /> Connect MetaTrader
               </button>
             )}
             <button
-              className={`btn ${a.platform === 'MT4' || a.platform === 'MT5' ? 'btn-ghost' : 'btn-primary'} btn-lg btn-block ${s.cta}`}
+              className={`btn ${usesMetaTrader(a) ? 'btn-ghost' : 'btn-primary'} btn-lg btn-block ${s.cta}`}
               onClick={() => finish()}
             >
-              {a.platform === 'MT4' || a.platform === 'MT5' ? 'Look around first' : <>Start journaling <ArrowRight size={16} /></>}
+              {usesMetaTrader(a) ? 'Look around first' : <>Start journaling <ArrowRight size={16} /></>}
             </button>
           </>
         )}
@@ -388,8 +392,9 @@ async function saveProfile(p: TraderProfile) {
   await sb.from('profiles').upsert({
     user_id: data.session.user.id,
     markets: p.markets,
-    account: p.account ?? null,
-    platform: p.platform ?? null,
+    // Several answers are kept readable in the dashboard, e.g. "Personal, Prop challenge".
+    account: accountsOf(p).join(', ') || null,
+    platform: platformsOf(p).join(', ') || null,
     journal_now: p.journalNow ?? null,
     journal_app: p.journalApp?.slice(0, 40) ?? null,
     goal: p.goal ?? null,
