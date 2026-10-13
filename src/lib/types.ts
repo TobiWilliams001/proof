@@ -127,6 +127,8 @@ export interface JournalData {
   units?: 'money' | 'r' | 'both';
   accounts?: SyncAccount[];
   profile?: TraderProfile;
+  /** When the welcome questions and the tour were shown to this trader, on any device. */
+  intro?: { welcomedAt?: string; touredAt?: string };
   /** What Proof has already said about the trader's rules, and draft notes waiting for them. */
   agent?: import('./rules/notices').AgentState;
   trades: Trade[];

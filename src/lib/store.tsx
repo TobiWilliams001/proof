@@ -31,6 +31,8 @@ interface JournalApi {
   setPlaybook(p: Playbook): void;
   setProfile(p: TraderProfile): void;
   setUnits(u: Units): void;
+  /** Records that the welcome or the tour has been shown, so it never repeats on another device. */
+  markIntro(step: 'welcomed' | 'toured'): void;
   setAgent(a: AgentState): void;
   dismissNotice(ruleId: string, day: string): void;
   /** Saves a drafted rule-break note as a real entry, in the trader's (possibly edited) words. */
@@ -176,6 +178,10 @@ export function JournalProvider({ userId, children }: { userId: string; children
       },
       setUnits(units) {
         update((d) => ({ ...d, units }));
+      },
+      markIntro(step) {
+        const key = step === 'welcomed' ? 'welcomedAt' : 'touredAt';
+        update((d) => (d.intro?.[key] ? d : { ...d, intro: { ...d.intro, [key]: new Date().toISOString() } }));
       },
       setAgent(agent) {
         update((d) => ({ ...d, agent }));

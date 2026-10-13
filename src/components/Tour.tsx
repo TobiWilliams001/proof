@@ -3,11 +3,10 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useIntro } from '@/lib/useIntro';
 import { useJournal } from '@/lib/store';
 import { InstallCard } from './InstallCard';
 import s from './Tour.module.css';
-
-const DONE_KEY = 'proof.tour.done';
 
 interface Step {
   target?: string; // data-tour name; the first visible match is highlighted
@@ -26,9 +25,6 @@ const STEPS: Step[] = [
 
 /** Replays the tour from anywhere (Settings uses this). */
 export function startTour() {
-  try {
-    localStorage.removeItem(DONE_KEY);
-  } catch {}
   window.dispatchEvent(new Event('proof:tour'));
 }
 
@@ -45,7 +41,8 @@ function visible(name: string): HTMLElement | null {
 }
 
 export function Tour() {
-  const { ready, data, loadDemo } = useJournal();
+  const { data, loadDemo } = useJournal();
+  const { ready, needsTour, markToured } = useIntro();
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -62,43 +59,18 @@ export function Tour() {
       setOpen(true);
     };
     window.addEventListener('proof:tour', show);
-    // Straight after the welcome questions on first open.
-    const afterWelcome = () => {
-      let seen = true;
-      try {
-        seen = localStorage.getItem(DONE_KEY) === '1';
-        if (!seen) localStorage.setItem(DONE_KEY, '1');
-      } catch {}
-      if (!seen) show();
-    };
-    window.addEventListener('proof:onboarded', afterWelcome);
-    return () => {
-      window.removeEventListener('proof:tour', show);
-      window.removeEventListener('proof:onboarded', afterWelcome);
-    };
+    return () => window.removeEventListener('proof:tour', show);
   }, []);
 
+  // Straight after the welcome questions, once per account, on the journal so
+  // there's a page to point at. It's marked as shown the moment it opens, so it
+  // never comes back on its own, however it's left.
   useEffect(() => {
-    if (!ready || path !== '/journal') return;
-    let seen = true;
-    let welcomed = false;
-    try {
-      seen = localStorage.getItem(DONE_KEY) === '1';
-      welcomed = localStorage.getItem('proof.onboarding.done') === '1';
-    } catch {}
-    // The welcome questions come first; the tour follows them.
-    if (!welcomed) return;
-    // First visit only; opening after hydration so the page is there to point at.
-    // It's marked done as soon as it's shown, so it never comes back on its own,
-    // however it's left (finished, skipped, closed mid-way or the app quit).
-    if (!seen) {
-      try {
-        localStorage.setItem(DONE_KEY, '1');
-      } catch {}
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpen(true);
-    }
-  }, [ready, path]);
+    if (!ready || path !== '/journal' || !needsTour) return;
+    markToured();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(true);
+  }, [ready, path, needsTour, markToured]);
 
   const target = step?.target;
 
@@ -120,12 +92,7 @@ export function Tour() {
     };
   }, [open, i, target]);
 
-  const finish = useCallback(() => {
-    try {
-      localStorage.setItem(DONE_KEY, '1');
-    } catch {}
-    setOpen(false);
-  }, []);
+  const finish = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     if (!open) return;
