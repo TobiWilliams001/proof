@@ -12,6 +12,8 @@ import { Logo } from './Logo';
 import { MotionRoot, SPRING } from './motion';
 import { ThemeToggle } from './ThemeSwitch';
 import { Onboarding } from './Onboarding';
+import { openVoice, TalkButton, VoiceCommand } from './VoiceCommand';
+import { useWakeWord } from '@/lib/voice/useWakeWord';
 import { DataBanner } from './DataBanner';
 import { useNow } from '@/lib/useNow';
 import { Tour } from './Tour';
@@ -34,6 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data, ready, saveFailed } = useJournal();
   useAutoSync();
   useRuleWatcher();
+  const wake = useWakeWord(openVoice);
   // A failed sync is never hidden: problems the trader must fix show at once; temporary
   // ones retry quietly for half an hour, then show too.
   const now = useNow();
@@ -65,6 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ),
           )}
         </nav>
+        <TalkButton className={s.talk} label wake={wake.listening} />
         <div className={s.railFoot}>
           <span className={s.syncDot} data-on={ready && data.trades.length > 0} />
           <span className="faint" style={{ fontSize: 12 }}>
@@ -79,6 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo size={22} />
         </Link>
         <div className="row">
+          <TalkButton className="btn btn-ghost btn-icon btn-sm" wake={wake.listening} />
           <ThemeToggle />
           <Link href="/settings" className="btn btn-ghost btn-icon btn-sm" aria-label="Settings">
             <Settings size={17} />
@@ -107,6 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       <Onboarding />
+      <VoiceCommand />
       <Tour />
 
       {/* Mobile tab bar */}

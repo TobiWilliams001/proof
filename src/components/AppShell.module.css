@@ -120,3 +120,17 @@
 @media (min-width: 900px) { .saveBanner { margin: 24px 40px 0; } }
 .bannerLink { color: var(--warn); font: inherit; font-weight: var(--weight-strong); text-decoration: underline; text-underline-offset: 3px; margin-left: 4px; }
 .bannerLink:disabled { opacity: 0.6; }
+
+.talk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+.talk:hover { background: var(--accent-line); }
