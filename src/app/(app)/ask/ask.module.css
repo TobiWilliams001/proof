@@ -88,6 +88,33 @@
   box-shadow: var(--shadow-3);
 }
 .askBar:focus-within { border-color: var(--accent-line); box-shadow: var(--shadow-3), 0 0 0 4px var(--accent-soft); }
+.matches {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 10px);
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-3);
+}
+.match {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  text-align: left;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.match svg { flex: none; color: var(--ink-3); }
+.match:hover, .match[data-on] { background: var(--surface-2); }
 .askInput { flex: 1; min-width: 0; height: 40px; border: 0; outline: 0; background: transparent; font-size: 16px; }
 .askInput::placeholder { color: var(--ink-3); }
 .micOn { background: var(--neg); color: #fff; }
