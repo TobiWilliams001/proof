@@ -29,7 +29,8 @@ Linked trade (from the platform, authoritative): ${trade ? JSON.stringify(trade)
 
 Note: """${text}"""
 
-Kinds: trade_note (about a taken trade), missed (saw it, didn't take it), rule_break, plan (future intent), reflection (state of mind/session).
+Kinds: trade_note (about a taken trade), missed (saw it, didn't take it), rule_break (a trade taken against the trader's own rules: no setup, revenge, FOMO, overtrading, moved stop), plan (future intent), reflection (state of mind/session).
+Symbol: the standard ticker, e.g. GBPUSD for "cable", XAUUSD for "gold", NAS100 for "Nasdaq".
 Return JSON: {"kind": one of the kinds, "symbol": string|null, "side": "long"|"short"|null, "setup": exact playbook setup name|null, "r": number|null, "tags": [exact playbook tags], "fields": {fieldName: value}, "confidence": 0..1}`;
 }
 

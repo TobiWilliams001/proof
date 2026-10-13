@@ -43,6 +43,8 @@ interface Draft {
   confidence: number;
   clarify?: Clarify;
   tradeId?: string;
+  /** What the AI picked up beyond the instant read, shown so its work is visible. */
+  aiAdded?: string[];
 }
 
 export function Composer({
@@ -227,7 +229,12 @@ export function Composer({
       if (id !== reqId.current) return;
       setRefining(false);
       if (touched.current) return;
-      setDraft((cur) => cur && { ...cur, ...r, kind: manualKind ?? r.kind, tradeId: cur.tradeId });
+      const added = [
+        ...(r.structured.setup && !local.structured.setup ? [r.structured.setup] : []),
+        ...r.structured.tags.filter((t) => !local.structured.tags.includes(t)),
+        ...(r.kind !== local.kind && !manualKind ? [KIND_LABEL[r.kind].toLowerCase()] : []),
+      ];
+      setDraft((cur) => cur && { ...cur, ...r, kind: manualKind ?? r.kind, tradeId: cur.tradeId, aiAdded: added });
     });
   }
 
@@ -255,7 +262,13 @@ export function Composer({
           <span className={s.spark}><Sparkles size={14} /></span>
           <span>Here’s how I read it</span>
           {refining && <span className={s.settling} aria-hidden />}
+          {refining && <span className={s.refiningText}>Checking with AI…</span>}
         </div>
+        {!refining && draft.aiAdded && draft.aiAdded.length > 0 && (
+          <p className={s.aiAdded}>
+            <Sparkles size={12} aria-hidden /> AI also picked up: {draft.aiAdded.join(', ')}
+          </p>
+        )}
 
         <blockquote className={s.quote}>{text}</blockquote>
 
