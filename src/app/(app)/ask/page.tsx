@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUp, ArrowUpRight, ChevronDown, Mic, Square } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, ChevronDown, Mic, Search, Square } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -8,16 +8,13 @@ import { EntryItem, TradeItem } from '@/components/Items';
 import { SPRING, stagger } from '@/components/motion';
 import { VoiceHelp } from '@/components/Voice';
 import { answerQuestion, type Answer } from '@/lib/ask';
+import { allQuestions, matchQuestions, suggestQuestions } from '@/lib/ask-suggest';
 import { useDictation } from '@/lib/speech';
 import { useJournal, useUnits } from '@/lib/store';
 import s from './ask.module.css';
 
-// Grouped by what the trader is trying to learn, so the kinds of questions that work are obvious.
-const SUGGESTED: { group: string; qs: string[] }[] = [
-  { group: 'Performance', qs: ['What’s my win rate on my best setup?', 'Which setup makes me the most?', 'How much did I make this month?'] },
-  { group: 'Leaks', qs: ['Which pair costs me the most?', 'How much do I make a trade on shorts?'] },
-  { group: 'Discipline', qs: ['How do I do when I follow my plan?', 'How do I perform when I log “tired”?', 'What do I keep saying about early entries?'] },
-];
+// For a journal with no trades yet: what Ask will be able to do.
+const STARTERS = ['Which setup makes me the most?', 'How do my trades do in the hour after a loss?', 'How do I do when I follow my plan?'];
 
 interface Turn {
   id: number;
@@ -34,6 +31,15 @@ export default function AskPage() {
   const append = useCallback((t: string) => setInput((p) => (p ? `${p} ${t}` : t)), []);
   const inputRef = useRef<HTMLInputElement>(null);
   const mic = useDictation(append, { onFallback: () => inputRef.current?.focus() });
+  const [focused, setFocused] = useState(false);
+  const [pick, setPick] = useState(-1);
+
+  // Built from the trader's own setups, pairs and words, and only questions Ask can answer.
+  const ctx = useMemo(() => ({ trades: data.trades, entries: data.entries }), [data.trades, data.entries]);
+  const [today] = useState(() => new Date());
+  const groups = useMemo(() => (ready ? suggestQuestions(ctx, data.playbook, today) : []), [ready, ctx, data.playbook, today]);
+  const pool = useMemo(() => (ready ? allQuestions(ctx, data.playbook, today) : []), [ready, ctx, data.playbook, today]);
+  const matches = useMemo(() => (focused ? matchQuestions(input, pool) : []), [focused, input, pool]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -46,6 +52,7 @@ export default function AskPage() {
     const a = answerQuestion(question, { trades: data.trades, entries: data.entries }, data.playbook, new Date(), units);
     setTurns((t) => [...t, { id: Date.now(), q: question, a }]);
     setInput('');
+    setPick(-1);
     logQuestion({ question, toolCalls: a.toolCalls, answer: a.text, tradeIds: a.tradeIds, entryIds: a.entryIds });
   };
 
@@ -65,19 +72,30 @@ export default function AskPage() {
             animate="show"
             exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
           >
-            {SUGGESTED.map(({ group, qs }) => (
-              <motion.div key={group} className={s.group} variants={stagger.child}>
-                <h2 className={s.groupTitle}>{group}</h2>
+            {groups.length ? (
+              groups.map(({ group, qs }) => (
+                <motion.div key={group} className={s.group} variants={stagger.child}>
+                  <h2 className={s.groupTitle}>{group}</h2>
+                  <div className={s.groupList}>
+                    {qs.map((q) => (
+                      <motion.button key={q} className={s.sugg} onClick={() => ask(q)} disabled={!ready} whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}>
+                        <span>{q}</span>
+                        <ArrowUpRight size={16} className="faint" />
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              ))
+            ) : ready ? (
+              <motion.div className={s.group} variants={stagger.child}>
+                <h2 className={s.groupTitle}>Once your trades are in, you can ask things like</h2>
                 <div className={s.groupList}>
-                  {qs.map((q) => (
-                    <motion.button key={q} className={s.sugg} onClick={() => ask(q)} disabled={!ready} whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}>
-                      <span>{q}</span>
-                      <ArrowUpRight size={16} className="faint" />
-                    </motion.button>
+                  {STARTERS.map((q) => (
+                    <p key={q} className={s.sugg} style={{ cursor: 'default' }}><span>{q}</span></p>
                   ))}
                 </div>
               </motion.div>
-            ))}
+            ) : null}
           </motion.section>
         )}
       </AnimatePresence>
@@ -101,13 +119,55 @@ export default function AskPage() {
           ask(input);
         }}
       >
+        {/* Matching questions as the trader types, like a search. */}
+        <AnimatePresence>
+          {matches.length > 0 && (
+            <motion.ul
+              id="ask-matches"
+              role="listbox"
+              className={s.matches}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.16 }}
+            >
+              {matches.map((q, i) => (
+                <li key={q} role="option" aria-selected={i === pick}>
+                  {/* Pointer down, not click, so the tap lands before the input loses focus. */}
+                  <button type="button" className={s.match} data-on={i === pick || undefined} onPointerDown={(e) => { e.preventDefault(); ask(q); }}>
+                    <Search size={14} aria-hidden /> <span>{q}</span>
+                  </button>
+                </li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
         <input
           className={s.askInput}
           placeholder="Ask anything about your trading…"
           ref={inputRef}
           value={mic.interim ? `${input} ${mic.interim}` : input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setPick(-1);
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onKeyDown={(e) => {
+            if (!matches.length) return;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              setPick((p) => (e.key === 'ArrowDown' ? (p + 1) % matches.length : (p - 1 + matches.length) % matches.length));
+            } else if (e.key === 'Enter' && pick >= 0) {
+              e.preventDefault();
+              ask(matches[pick]);
+            } else if (e.key === 'Escape') setFocused(false);
+          }}
           aria-label="Your question"
+          aria-autocomplete="list"
+          aria-controls="ask-matches"
+          aria-expanded={matches.length > 0}
+          role="combobox"
           enterKeyHint="send"
         />
         {mic.supported && (
