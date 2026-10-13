@@ -4,18 +4,14 @@ import { ArrowLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { QUESTIONS } from '@/lib/onboarding/questions';
+import { introState } from '@/lib/intro';
 import { useJournal } from '@/lib/store';
 import { supabase } from '@/lib/supabase/client';
 import type { TraderProfile } from '@/lib/types';
 import s from './Onboarding.module.css';
 
-export const ONBOARDING_KEY = 'proof.onboarding.done';
-
 /** Shows the welcome questions again (Settings uses this). */
 export function startOnboarding() {
-  try {
-    localStorage.removeItem(ONBOARDING_KEY);
-  } catch {}
   window.dispatchEvent(new Event('proof:onboarding'));
 }
 
@@ -27,7 +23,7 @@ type Answers = Omit<TraderProfile, 'answeredAt'>;
  * trader's profile so the team can see who Proof is for. Never trades or notes.
  */
 export function Onboarding() {
-  const { ready, data, setProfile } = useJournal();
+  const { ready, data, setProfile, markIntro } = useJournal();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [a, setA] = useState<Answers>({ markets: [] });
@@ -42,29 +38,22 @@ export function Onboarding() {
     return () => window.removeEventListener('proof:onboarding', show);
   }, [data.profile]);
 
+  // First time on this account, on whichever device that is.
+  const { needsWelcome } = introState(data);
   useEffect(() => {
-    if (!ready || data.profile) return;
-    let done = true;
-    try {
-      done = localStorage.getItem(ONBOARDING_KEY) === '1';
-    } catch {}
-    // First open only, after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!done) setOpen(true);
-  }, [ready, data.profile]);
+    if (ready && needsWelcome) setOpen(true);
+  }, [ready, needsWelcome]);
 
   const close = (finished: boolean) => {
-    try {
-      localStorage.setItem(ONBOARDING_KEY, '1');
-    } catch {}
+    markIntro('welcomed');
     if (finished) {
       const profile: TraderProfile = { ...a, answeredAt: new Date().toISOString() };
       setProfile(profile);
       saveProfile(profile);
     }
     setOpen(false);
-    // The tour follows the welcome questions.
-    window.dispatchEvent(new Event('proof:onboarded'));
+    // The tour follows on its own: it opens once the account is marked as welcomed.
   };
 
   if (!open) return null;
