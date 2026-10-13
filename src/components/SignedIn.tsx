@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { ExperimentsProvider } from '@/lib/experiments/useExperiments';
 import { RulesProvider } from '@/lib/rules/useRules';
+import { IntroProvider } from '@/lib/useIntro';
 import { JournalProvider } from '@/lib/store';
 
 /** The app is for signed-in traders; everyone else goes to Get started. */
@@ -30,7 +31,9 @@ export function SignedIn({ children }: { children: React.ReactNode }) {
   return (
     <JournalProvider key={session.user.id} userId={session.user.id}>
       <RulesProvider userId={session.user.id}>
-        <ExperimentsProvider>{children}</ExperimentsProvider>
+        <ExperimentsProvider>
+          <IntroProvider userId={session.user.id}>{children}</IntroProvider>
+        </ExperimentsProvider>
       </RulesProvider>
     </JournalProvider>
   );

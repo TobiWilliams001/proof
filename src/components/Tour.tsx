@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
-import { introState } from '@/lib/intro';
+import { useIntro } from '@/lib/useIntro';
 import { useJournal } from '@/lib/store';
 import { InstallCard } from './InstallCard';
 import s from './Tour.module.css';
@@ -41,8 +41,8 @@ function visible(name: string): HTMLElement | null {
 }
 
 export function Tour() {
-  const { ready, data, loadDemo, markIntro } = useJournal();
-  const { needsTour } = introState(data);
+  const { data, loadDemo } = useJournal();
+  const { ready, needsTour, markToured } = useIntro();
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -67,10 +67,10 @@ export function Tour() {
   // never comes back on its own, however it's left.
   useEffect(() => {
     if (!ready || path !== '/journal' || !needsTour) return;
-    markIntro('toured');
+    markToured();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(true);
-  }, [ready, path, needsTour, markIntro]);
+  }, [ready, path, needsTour, markToured]);
 
   const target = step?.target;
 
