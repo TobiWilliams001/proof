@@ -112,6 +112,11 @@ export interface SyncAccount {
 /** The welcome questions: who the trader is, so Proof fits them (and you learn your audience). */
 export interface TraderProfile {
   markets: string[];
+  /** Every kind of account they trade, e.g. a prop challenge beside a personal account. */
+  accounts?: string[];
+  /** Every platform they use. */
+  platforms?: string[];
+  /** Single answers saved before the lists; read through accountsOf/platformsOf. */
   account?: string;
   platform?: string;
   journalNow?: string;
