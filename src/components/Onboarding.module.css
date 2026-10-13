@@ -1,45 +1,79 @@
+/* The first minute in Proof: full screen, one thing at a time, the next step always within thumb reach. */
 .root {
   position: fixed;
   inset: 0;
   z-index: 70;
   display: flex;
   flex-direction: column;
+  /* clip, not hidden: hidden can still be scrolled sideways by focus, shifting the screen. */
+  overflow: clip;
   background: var(--bg);
-  padding: calc(8px + env(safe-area-inset-top)) var(--gutter) calc(24px + env(safe-area-inset-bottom));
+  padding: calc(8px + env(safe-area-inset-top)) 20px calc(16px + env(safe-area-inset-bottom));
+}
+.glow {
+  position: absolute;
+  inset: -30% -30% auto auto;
+  width: 90%;
+  height: 60%;
+  background: radial-gradient(closest-side, var(--accent-soft), transparent);
+  pointer-events: none;
 }
 
-.top { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px; max-width: 520px; width: 100%; margin: 0 auto; }
-.progress { display: flex; gap: 5px; }
-.progress span { flex: 1; height: 4px; border-radius: 4px; background: var(--surface-3); transition: background 0.25s; }
-.progress span[data-on] { background: var(--accent); }
+.top { position: relative; display: grid; grid-template-columns: 40px 1fr 56px; align-items: center; gap: 12px; max-width: 520px; width: 100%; margin: 0 auto; min-height: 44px; }
+.progress { height: 6px; border-radius: 6px; background: var(--surface-3); overflow: hidden; }
+.progress span { display: block; height: 100%; border-radius: 6px; background: var(--accent); }
 
-.body { flex: 1; width: 100%; max-width: 520px; margin: 0 auto; padding-top: 12vh; }
-.intro { font-size: var(--text-sm); color: var(--ink-3); margin-bottom: 10px; }
-.title { font-size: var(--text-2xl); font-weight: var(--weight-display); letter-spacing: var(--tracking-display); line-height: 1.15; }
-.hint { margin-top: 6px; font-size: var(--text-sm); color: var(--ink-3); }
+.body { position: relative; flex: 1; width: 100%; max-width: 520px; margin: 0 auto; padding-top: 6vh; overflow-x: clip; overflow-y: auto; }
+@media (min-width: 640px) { .body { padding-top: 10vh; } }
 
-.options { display: grid; gap: 8px; margin-top: 22px; }
+/* Welcome and done */
+.welcome { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.mark { font-weight: 700; font-size: 22px; letter-spacing: -0.03em; }
+.hero { font-size: clamp(32px, 8.5vw, 44px); font-weight: 650; letter-spacing: -0.035em; line-height: 1.04; margin-top: 8px; }
+.points { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 12px; width: 100%; }
+.points li { display: flex; align-items: center; gap: 12px; font-size: 16px; color: var(--ink); }
+.pointIcon { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); }
+.doneIcon { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 20px; background: var(--pos-soft); color: var(--pos-text); }
+
+/* Questions */
+.count { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.01em; }
+.title { margin-top: 8px; font-size: clamp(28px, 7.5vw, 36px); font-weight: 650; letter-spacing: -0.03em; line-height: 1.08; }
+.why { margin-top: 8px; font-size: 16px; line-height: 1.5; color: var(--ink-2); max-width: 44ch; }
+
+.options { display: grid; gap: 10px; margin-top: 24px; }
+@media (min-width: 640px) { .options[data-multi] { grid-template-columns: 1fr 1fr; } }
 .option {
   display: flex;
   align-items: center;
-  min-height: 52px;
-  padding: 0 18px;
-  border-radius: var(--r);
+  gap: 14px;
+  min-height: 60px;
+  padding: 10px 14px;
+  border-radius: 16px;
   background: var(--surface);
+  border: 1px solid var(--line);
   box-shadow: var(--shadow-1);
-  font-size: var(--text-md);
-  font-weight: var(--weight-medium);
   text-align: left;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.12s var(--ease);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.option:hover { background: var(--surface-2); }
-.option:active { transform: scale(0.99); }
-.option[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.option:hover { border-color: var(--line-2); }
+.option[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.optionIcon { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); transition: background 0.15s, color 0.15s; }
+.option[aria-pressed='true'] .optionIcon { background: var(--accent); color: var(--accent-ink); }
+.optionLabel { flex: 1; font-size: 16px; font-weight: 550; }
+.tick { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); color: var(--accent-ink); transition: background 0.15s, border-color 0.15s; }
+.option[aria-pressed='true'] .tick { background: var(--accent); border-color: var(--accent); }
+.extra { margin-top: 12px; height: 52px; border-radius: 14px; }
 
-.privacy { margin-top: 18px; font-size: var(--text-xs); color: var(--ink-3); }
+.describe { margin-top: 20px; min-height: 130px; border-radius: 16px; font-size: 16px; line-height: 1.5; padding: 14px 16px; }
+.describeRow { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.readNote { font-size: 14px; color: var(--pos-text); }
+.small { margin-top: 14px; font-size: 13px; color: var(--ink-3); }
 
-@media (min-width: 640px) {
-  .options { grid-template-columns: 1fr 1fr; }
-  .body { padding-top: 16vh; }
-}
-@media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
+.chat { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 14.5px; line-height: 1.45; color: var(--ink-2); cursor: pointer; }
+.chat input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+
+/* The next step sits at the bottom, where the thumb is. */
+.actions { position: relative; display: grid; gap: 8px; width: 100%; max-width: 520px; margin: 12px auto 0; }
+.cta { height: 54px; border-radius: 16px; gap: 8px; }
+
+@media (prefers-reduced-motion: reduce) { .option, .optionIcon, .tick { transition: none; } }
