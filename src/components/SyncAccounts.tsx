@@ -8,6 +8,7 @@ import { connectMt, disconnectMt, SYNC_PROBLEM } from '@/lib/sync/client';
 import { useNow } from '@/lib/useNow';
 import type { SyncAccount } from '@/lib/types';
 import { Sheet } from './Sheet';
+import { preferredMt } from '@/lib/onboarding/profile';
 import { mismatchText, reconcile } from '@/lib/datacheck/reconcile';
 
 /** Connected MetaTrader accounts: their health, and the connect flow. */
@@ -93,7 +94,7 @@ function Status({ a, now }: { a: SyncAccount; now: number }) {
 
 function ConnectForm({ onDone }: { onDone: () => void }) {
   const { addAccount, data } = useJournal();
-  const [f, setF] = useState({ platform: (data.profile?.platform === 'MT4' ? 'mt4' : 'mt5') as 'mt4' | 'mt5', login: '', password: '', server: '', name: '' });
+  const [f, setF] = useState({ platform: preferredMt(data.profile), login: '', password: '', server: '', name: '' });
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<{ text: string; suggestions?: string[] } | null>(null);
   const valid = /^\d{3,12}$/.test(f.login.trim()) && f.password && f.server.trim();
