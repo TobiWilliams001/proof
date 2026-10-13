@@ -9,6 +9,7 @@ import { fmt } from '@/lib/format';
 import { recordJournalTime } from '@/lib/metrics';
 import { useDictation } from '@/lib/speech';
 import { useJournal, useUnits } from '@/lib/store';
+import { VOICE_NOTE_KEY } from './VoiceCommand';
 import { useNow } from '@/lib/useNow';
 import { detectKind, structureNote, type Clarify } from '@/lib/structure';
 import { isOpen, KIND_LABEL, type EntryKind, type Structured, type Trade } from '@/lib/types';
@@ -102,6 +103,24 @@ export function Composer({
     },
     [draftKey],
   );
+
+  // A note spoken to "Talk to Proof" lands here and goes straight to the confirm card.
+  const voicePending = useRef(false);
+  useEffect(() => {
+    if (trade) return;
+    const take = () => {
+      try {
+        const note = sessionStorage.getItem(VOICE_NOTE_KEY);
+        if (!note) return;
+        sessionStorage.removeItem(VOICE_NOTE_KEY);
+        voicePending.current = true;
+        setText(note);
+      } catch {}
+    };
+    take();
+    window.addEventListener('proof:voice-note', take);
+    return () => window.removeEventListener('proof:voice-note', take);
+  }, [trade, setText]);
 
   const setMode = (on: boolean) => {
     setStructure(on);
@@ -211,6 +230,14 @@ export function Composer({
       setDraft((cur) => cur && { ...cur, ...r, kind: manualKind ?? r.kind, tradeId: cur.tradeId });
     });
   }
+
+  useEffect(() => {
+    if (!voicePending.current || !text.trim()) return;
+    voicePending.current = false;
+    submit();
+    // submit reads the latest text; it only needs to run once the spoken note is in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
 
   const edit = (fn: (d: Draft) => Draft) => {
     touched.current = true;
