@@ -8,6 +8,7 @@ import { InstallCard } from '@/components/InstallCard';
 import { startTour } from '@/components/Tour';
 import { startOnboarding } from '@/components/Onboarding';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
+import { VoiceSettings } from '@/components/VoiceSettings';
 import { Reveal } from '@/components/motion';
 import { typicalJournalTime } from '@/lib/metrics';
 import { useJournal } from '@/lib/store';
@@ -69,6 +70,11 @@ export default function SettingsPage() {
           You can also bring in a history file from any platform.
         </p>
         <CsvImport onImport={addTrades} />
+      </Reveal>
+
+      <Reveal className="section">
+        <h2 className="section-title" style={{ marginBottom: 12 }}>Voice</h2>
+        <VoiceSettings />
       </Reveal>
 
       <Reveal className="section">
