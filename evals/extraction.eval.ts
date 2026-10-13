@@ -44,6 +44,8 @@ const CASES: Case[] = [
   { note: 'Skipped the breakout retest on GBPUSD, didn’t trust it', kind: 'missed', setup: 'Breakout retest', symbol: 'GBPUSD' },
   { note: 'Revenge trade on NAS100 after the stop-out. -1R', kind: 'rule_break', symbol: 'NAS100', r: -1, tags: ['revenge'] },
   { note: 'Waiting for a footprint confirmation at 2,320 if price gets there', kind: 'plan', setup: 'Footprint' },
+  { note: 'Jumped into cable short with no setup, stopped out', kind: 'rule_break', symbol: 'GBPUSD' },
+  { note: 'Fiber long off the 2 touch, paid 1.2R', kind: 'trade_note', setup: '2-touch', symbol: 'EURUSD', r: 1.2 },
 ];
 
 type Field = 'kind' | 'setup' | 'symbol' | 'r' | 'tags' | 'clarify';

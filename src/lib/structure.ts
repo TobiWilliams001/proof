@@ -32,6 +32,16 @@ const SYMBOL_ALIASES: Record<string, string> = {
   BITCOIN: 'BTCUSD',
   BTC: 'BTCUSD',
   ETH: 'ETHUSD',
+  // Trader nicknames for the major pairs.
+  CABLE: 'GBPUSD',
+  FIBER: 'EURUSD',
+  FIBRE: 'EURUSD',
+  AUSSIE: 'AUDUSD',
+  KIWI: 'NZDUSD',
+  LOONIE: 'USDCAD',
+  SWISSY: 'USDCHF',
+  GUPPY: 'GBPJPY',
+  GOPHER: 'USDJPY',
 };
 
 const CURRENCIES = 'USD|EUR|GBP|JPY|AUD|NZD|CAD|CHF|XAU|XAG';
