@@ -166,6 +166,8 @@
 
 /* ── Sections ── */
 .section { padding: 72px 0; }
+/* Lands below the sticky nav when a link scrolls here. */
+.section[id] { scroll-margin-top: 56px; }
 .tint { background: var(--bg-tint); }
 .kicker { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.02em; margin-bottom: 20px; }
 .h2 {

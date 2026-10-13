@@ -547,3 +547,8 @@ html.splash-out #splash { opacity: 0; pointer-events: none; }
 .mini-stats > div + div { border-left: 1px solid var(--line); }
 .mini-stats span { font-size: var(--text-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mini-stats strong { font-size: var(--text-md); font-weight: var(--weight-strong); white-space: nowrap; }
+
+/* Links to a section ("How it works") glide there instead of jumping, unless the trader asked for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
