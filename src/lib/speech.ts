@@ -52,7 +52,16 @@ function explain(kind: 'blocked' | 'unavailable' | 'network'): string {
     : 'Voice isn’t available in this browser. You can type instead.';
 }
 
-export function useDictation(onText: (finalText: string) => void, opts: { onFallback?: () => void } = {}) {
+export function useDictation(
+  onText: (finalText: string) => void,
+  opts: {
+    onFallback?: () => void;
+    /** One request, then stop on its own (voice commands), instead of dictating until stopped. */
+    single?: boolean;
+    /** Called when listening ends, however it ended. */
+    onEnd?: () => void;
+  } = {},
+) {
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState('');
@@ -64,10 +73,12 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
   const active = useRef(false);
   const cb = useRef(onText);
   const fallback = useRef(opts.onFallback);
+  const ended = useRef(opts.onEnd);
   useEffect(() => {
     cb.current = onText;
     fallback.current = opts.onFallback;
-  }, [onText, opts.onFallback]);
+    ended.current = opts.onEnd;
+  }, [onText, opts.onFallback, opts.onEnd]);
 
   useEffect(() => {
     // Feature detection has to happen after mount (no window during prerender).
@@ -107,7 +118,7 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
 
     const r = new Ctor();
     // iPhone handles one phrase at a time far more reliably than continuous mode.
-    r.continuous = !isIOS();
+    r.continuous = !isIOS() && !opts.single;
     r.interimResults = true;
     r.lang = navigator.language || 'en-US';
     r.onresult = (e) => {
@@ -130,6 +141,7 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
       active.current = false;
       setListening(false);
       setInterim('');
+      ended.current?.();
     };
     rec.current = r;
     try {
@@ -137,7 +149,7 @@ export function useDictation(onText: (finalText: string) => void, opts: { onFall
     } catch {
       fail('unavailable');
     }
-  }, [fail]);
+  }, [fail, opts.single]);
 
   const stop = useCallback(() => {
     active.current = false;

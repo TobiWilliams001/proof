@@ -1,0 +1,72 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 11, 13, 0.45);
+  backdrop-filter: blur(6px);
+}
+@media (min-width: 720px) { .backdrop { align-items: center; } }
+.panel {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 12px calc(12px + env(safe-area-inset-bottom));
+  padding: 32px 22px 18px;
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+.close { position: absolute; top: 12px; right: 12px; }
+
+.orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 10px 30px -10px var(--accent);
+  transition: transform 0.15s ease;
+}
+.orb:active { transform: scale(0.96); }
+/* A soft pulse while listening, so it's obvious Proof can hear. */
+.orb[data-on]::before,
+.orb[data-on]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: ring 1.6s ease-out infinite;
+}
+.orb[data-on]::after { animation-delay: 0.8s; }
+@keyframes ring {
+  from { transform: scale(1); opacity: 0.7; }
+  to { transform: scale(1.7); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .orb[data-on]::before, .orb[data-on]::after { animation: none; } }
+
+.prompt { margin-top: 10px; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.heard { min-height: 24px; font-size: 16px; color: var(--ink-2); line-height: 1.45; max-width: 36ch; }
+.examples { list-style: none; padding: 0; margin: 6px 0 4px; display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-3); }
+.type { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 8px; padding: 6px 6px 6px 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--bg); }
+.typeInput { flex: 1; min-width: 0; height: 36px; border: 0; outline: 0; background: transparent; font-size: 16px; color: var(--ink); }
+
+.confirm { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.badge { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; background: var(--accent-soft); color: var(--accent); }
+.badge[data-done] { background: var(--pos-soft); color: var(--pos-text); }
+.big { font-size: 18px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+.note { font-size: 14px; color: var(--ink-2); line-height: 1.45; margin-bottom: 8px; }
+
+/* Shows Proof is listening for "Hey Proof", so it's never a secret. */
+.wakeDot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 0 2px var(--surface); }

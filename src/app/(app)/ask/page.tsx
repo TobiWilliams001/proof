@@ -11,6 +11,7 @@ import { answerQuestion, type Answer } from '@/lib/ask';
 import { allQuestions, matchQuestions, suggestQuestions } from '@/lib/ask-suggest';
 import { useDictation } from '@/lib/speech';
 import { useJournal, useUnits } from '@/lib/store';
+import { say, VOICE_SPEAK_KEY } from '@/components/VoiceCommand';
 import s from './ask.module.css';
 
 // For a journal with no trades yet: what Ask will be able to do.
@@ -45,16 +46,37 @@ export default function AskPage() {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [turns.length]);
 
-  const ask = (q: string) => {
+  const ask = (q: string, aloud = false) => {
     const question = q.trim();
     if (!question) return;
     mic.stop();
     const a = answerQuestion(question, { trades: data.trades, entries: data.entries }, data.playbook, new Date(), units);
+    if (aloud) say(a.text);
     setTurns((t) => [...t, { id: Date.now(), q: question, a }]);
     setInput('');
     setPick(-1);
     logQuestion({ question, toolCalls: a.toolCalls, answer: a.text, tradeIds: a.tradeIds, entryIds: a.entryIds });
   };
+
+  // A question asked out loud ("Talk to Proof") arrives in the address; answer it, aloud.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (!ready || asked.current) return;
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (!q) return;
+    asked.current = true;
+    let aloud = false;
+    try {
+      aloud = sessionStorage.getItem(VOICE_SPEAK_KEY) === '1';
+      sessionStorage.removeItem(VOICE_SPEAK_KEY);
+    } catch {}
+    window.history.replaceState(null, '', '/ask');
+    // Answering a question handed over from the talk screen, once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    ask(q, aloud);
+    // Runs once, when the journal is ready to answer from.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   return (
     <div className="page">
